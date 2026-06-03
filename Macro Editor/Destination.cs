@@ -6,12 +6,10 @@ using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 using MacroEditor.My;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace MacroEditor
 {
 	// Token: 0x02000009 RID: 9
-	[DesignerGenerated]
 	public partial class Destination : Form
 	{
 		// Token: 0x0600002B RID: 43 RVA: 0x00002C28 File Offset: 0x00000E28
@@ -50,7 +48,7 @@ namespace MacroEditor
 				int num = this.mainWin.Contents.Items.Count - 1;
 				for (int i = 0; i <= num; i++)
 				{
-					this.DestContents.Items.Add(RuntimeHelpers.GetObjectValue(this.mainWin.Contents.Items[i]));
+					this.DestContents.Items.Add(this.mainWin.Contents.Items[i]);
 				}
 				int num2 = 0;
 				do
@@ -114,7 +112,7 @@ namespace MacroEditor
 		{
 			string[] array = new string[10];
 			string[] array2 = new string[10];
-			this.xRow = Convert.ToInt32(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			this.xRow = Convert.ToInt32(((Button)sender).Tag);
 			int num = 0;
 			checked
 			{

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.CodeDom.Compiler;
 using System.Collections;
 using System.ComponentModel;
@@ -160,7 +160,7 @@ namespace MacroEditor.My
 			[EditorBrowsable(EditorBrowsableState.Never)]
 			public override bool Equals(object o)
 			{
-				return base.Equals(RuntimeHelpers.GetObjectValue(o));
+				return base.Equals(o);
 			}
 
 			// Token: 0x06000144 RID: 324 RVA: 0x0000C660 File Offset: 0x0000A860
@@ -344,7 +344,7 @@ namespace MacroEditor.My
 			[DebuggerHidden]
 			public override bool Equals(object o)
 			{
-				return base.Equals(RuntimeHelpers.GetObjectValue(o));
+				return base.Equals(o);
 			}
 
 			// Token: 0x06000152 RID: 338 RVA: 0x0000C830 File Offset: 0x0000AA30

@@ -13,14 +13,12 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using MacroEditor.My;
 using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.CompilerServices;
 using Microsoft.Win32;
 using Yekyaa.FFXIEncoding;
 
 namespace MacroEditor
 {
 	// Token: 0x0200000A RID: 10
-	[DesignerGenerated]
 	public partial class MainForm : Form
 	{
 		// Token: 0x0600003C RID: 60 RVA: 0x000033E8 File Offset: 0x000015E8
@@ -557,22 +555,16 @@ namespace MacroEditor
 				while (num3 <= 6);
 				foreach (object obj in base.Controls)
 				{
-					object objectValue = RuntimeHelpers.GetObjectValue(obj);
-					bool flag3 = objectValue is Button | objectValue is ListBox;
+					var control = (Control)obj;
+					bool flag3 = control is Button | control is ListBox;
 					if (flag3)
 					{
-						NewLateBinding.LateSet(objectValue, null, "tabstop", new object[]
-						{
-							false
-						}, null, null);
+						control.TabStop = false;
 					}
-					bool flag4 = !object.Equals(NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null), "MainMenu");
+					bool flag4 = !object.Equals(control.Name, "MainMenu");
 					if (flag4)
 					{
-						NewLateBinding.LateSet(objectValue, null, "enabled", new object[]
-						{
-							false
-						}, null, null);
+						control.Enabled = false;
 					}
 				}
 				this.File_SaveRow.Enabled = false;
@@ -602,7 +594,8 @@ namespace MacroEditor
 		// Token: 0x06000053 RID: 83 RVA: 0x00004EE4 File Offset: 0x000030E4
 		private void Lines_TextChanged(object sender, EventArgs e)
 		{
-			bool flag = object.Equals(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null), 0);
+			var textBox = (TextBox)sender;
+			bool flag = object.Equals(textBox.Tag, 0);
 			checked
 			{
 				if (flag)
@@ -617,29 +610,23 @@ namespace MacroEditor
 					{
 						this.Ctrls[this.xMacro].Text = "A" + this.FormatMacroIndex(this.xMacro - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
-					bool flag3 = Convert.ToInt32(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null), null, "length", new object[0], null, null, null)) > 8;
+					bool flag3 = textBox.Text.Length > 8;
 					if (flag3)
 					{
-						int val = Convert.ToInt32(NewLateBinding.LateGet(sender, null, "selectionstart", new object[0], null, null, null));
-						NewLateBinding.LateSet(sender, null, "text", new object[]
-						{
-							NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null).ToString().Substring(0, 8)
-						}, null, null);
-						NewLateBinding.LateSet(sender, null, "selectionstart", new object[]
-						{
-							Math.Min(val, 8)
-						}, null, null);
+						int val = textBox.SelectionStart;
+						textBox.Text = textBox.Text.Substring(0, 8);
+						textBox.SelectionStart = Math.Min(val, 8);
 					}
 				}
 				this.SomethingEdited = true;
-				bool flag4 = NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null).ToString().Trim().Length == 0;
+				bool flag4 = textBox.Text.Trim().Length == 0;
 				if (flag4)
 				{
-					this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro][Convert.ToInt32(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null))] = "";
+					this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro][Convert.ToInt32(textBox.Tag)] = "";
 				}
 				else
 				{
-					this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro][Convert.ToInt32(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null))] = NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null).ToString();
+					this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro][Convert.ToInt32(textBox.Tag)] = textBox.Text;
 				}
 			}
 		}
@@ -647,29 +634,24 @@ namespace MacroEditor
 		// Token: 0x06000054 RID: 84 RVA: 0x0000515C File Offset: 0x0000335C
 		private void lines_KeyDown(object sender, KeyEventArgs e)
 		{
+			var textBox = (TextBox)sender;
 			bool flag = e.KeyCode == Keys.F2 & this.CurrentLine > 0;
 			if (flag)
 			{
 				e.Handled = true;
-				this.MenuText_Opening(RuntimeHelpers.GetObjectValue(sender), new CancelEventArgs());
-				this.MenuText.Show(new Point(Convert.ToInt32(base.Left) + Convert.ToInt32(NewLateBinding.LateGet(sender, null, "left", new object[0], null, null, null)) + Convert.ToInt32(NewLateBinding.LateGet(sender, null, "width", new object[0], null, null, null)), Convert.ToInt32(base.Top) + Convert.ToInt32(NewLateBinding.LateGet(sender, null, "top", new object[0], null, null, null))));
+				this.MenuText_Opening(sender, new CancelEventArgs());
+				this.MenuText.Show(new Point(Convert.ToInt32(base.Left) + textBox.Left + textBox.Width, Convert.ToInt32(base.Top) + textBox.Top));
 			}
 			else
 			{
 				bool flag2 = e.KeyCode == Keys.Return & this.CurrentLine < 6;
 				if (flag2)
 				{
-					bool flag3 = Convert.ToInt32(NewLateBinding.LateGet(sender, null, "selectionlength", new object[0], null, null, null)) > 0;
+					bool flag3 = textBox.SelectionLength > 0;
 					if (flag3)
 					{
-						NewLateBinding.LateSet(sender, null, "selectionstart", new object[]
-						{
-							(Convert.ToInt32(NewLateBinding.LateGet(sender, null, "selectionstart", new object[0], null, null, null)) + Convert.ToInt32(NewLateBinding.LateGet(sender, null, "selectionlength", new object[0], null, null, null)))
-						}, null, null);
-						NewLateBinding.LateSet(sender, null, "selectionlength", new object[]
-						{
-							0
-						}, null, null);
+						textBox.SelectionStart = textBox.SelectionStart + textBox.SelectionLength;
+						textBox.SelectionLength = 0;
 						e.SuppressKeyPress = true;
 					}
 					else
@@ -695,13 +677,10 @@ namespace MacroEditor
 						bool flag6 = e.KeyCode == Keys.Escape;
 						if (flag6)
 						{
-							bool flag7 = Convert.ToInt32(NewLateBinding.LateGet(sender, null, "selectionlength", new object[0], null, null, null)) > 0;
+							bool flag7 = textBox.SelectionLength > 0;
 							if (flag7)
 							{
-								NewLateBinding.LateSet(sender, null, "selectionlength", new object[]
-								{
-									0
-								}, null, null);
+								textBox.SelectionLength = 0;
 								e.SuppressKeyPress = true;
 							}
 							else
@@ -726,7 +705,7 @@ namespace MacroEditor
 		// Token: 0x06000055 RID: 85 RVA: 0x000053E1 File Offset: 0x000035E1
 		private void Lines_GotFocus(object sender, EventArgs e)
 		{
-			this.CurrentLine = Convert.ToInt32(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			this.CurrentLine = Convert.ToInt32(((TextBox)sender).Tag);
 		}
 
 		// Token: 0x06000056 RID: 86 RVA: 0x00005404 File Offset: 0x00003604
@@ -755,7 +734,7 @@ namespace MacroEditor
 		// Token: 0x06000058 RID: 88 RVA: 0x000054B8 File Offset: 0x000036B8
 		private void Row_Click(object sender, EventArgs e)
 		{
-			this.xRow = Convert.ToInt32(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			this.xRow = Convert.ToInt32(((Control)sender).Tag);
 			int num = 0;
 			checked
 			{
@@ -776,20 +755,14 @@ namespace MacroEditor
 				while (num <= 19);
 				foreach (object obj in base.Controls)
 				{
-					object objectValue = RuntimeHelpers.GetObjectValue(obj);
-					bool flag2 = objectValue is Button & NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null).ToString().StartsWith("Row");
+					var control = (Control)obj;
+					bool flag2 = control is Button & control.Name.StartsWith("Row");
 					if (flag2)
 					{
-						NewLateBinding.LateSet(objectValue, null, "backcolor", new object[]
-						{
-							this.BackColor
-						}, null, null);
+						control.BackColor = this.BackColor;
 					}
 				}
-				NewLateBinding.LateSet(sender, null, "BackColor", new object[]
-				{
-					Color.LightGray
-				}, null, null);
+				((Control)sender).BackColor = Color.LightGray;
 				this.Ctrls[this.xMacro].PerformClick();
 			}
 		}
@@ -797,37 +770,32 @@ namespace MacroEditor
 		// Token: 0x06000059 RID: 89 RVA: 0x0000568C File Offset: 0x0000388C
 		private void Control_MouseEnter(object sender, EventArgs e)
 		{
-			this.ControlTip.SetToolTip((Control)sender, string.Join("\n", this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null))].ToArray()));
+			this.ControlTip.SetToolTip((Control)sender, string.Join("\n", this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(((Control)sender).Tag)].ToArray()));
 		}
 
 		// Token: 0x0600005A RID: 90 RVA: 0x000056E8 File Offset: 0x000038E8
 		private void Control_Click(object sender, EventArgs e)
 		{
 			bool somethingEdited = this.SomethingEdited;
-			this.xMacro = Convert.ToInt32(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			int senderTag = Convert.ToInt32(((Control)sender).Tag);
+			this.xMacro = senderTag;
 			checked
 			{
-				int num = this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(NewLateBinding.LateGet(sender, null, "Tag", new object[0], null, null, null))].ToArray().Length - 1;
+				int num = this.Books[this.xBook].Rows[this.xRow].Macros[senderTag].ToArray().Length - 1;
 				for (int i = 0; i <= num; i++)
 				{
-					this.Lines[i].Text = this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(NewLateBinding.LateGet(sender, null, "Tag", new object[0], null, null, null))][i];
+					this.Lines[i].Text = this.Books[this.xBook].Rows[this.xRow].Macros[senderTag][i];
 				}
 				foreach (object obj in base.Controls)
 				{
-					object objectValue = RuntimeHelpers.GetObjectValue(obj);
-					bool flag = objectValue is Button & !NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null).ToString().StartsWith("Row");
+					var control = (Control)obj;
+					bool flag = control is Button & !control.Name.StartsWith("Row");
 					if (flag)
 					{
-						NewLateBinding.LateSet(objectValue, null, "backcolor", new object[]
-						{
-							this.BackColor
-						}, null, null);
+						control.BackColor = this.BackColor;
 					}
 				}
-				NewLateBinding.LateSet(sender, null, "BackColor", new object[]
-				{
-					Color.LightGray
-				}, null, null);
+				((Control)sender).BackColor = Color.LightGray;
 				this.SomethingEdited = somethingEdited;
 			}
 		}
@@ -855,7 +823,8 @@ namespace MacroEditor
 		// Token: 0x0600005D RID: 93 RVA: 0x000058F4 File Offset: 0x00003AF4
 		private void RowHandler_Mousedown(object sender, MouseEventArgs e)
 		{
-			bool flag = object.Equals(NewLateBinding.LateGet(sender, null, "name", new object[0], null, null, null), "LeftHandler");
+			string senderName = ((Control)sender).Name;
+			bool flag = object.Equals(senderName, "LeftHandler");
 			checked
 			{
 				if (flag)
@@ -866,7 +835,7 @@ namespace MacroEditor
 				}
 				else
 				{
-					bool flag2 = object.Equals(NewLateBinding.LateGet(sender, null, "name", new object[0], null, null, null), "RightHandler");
+					bool flag2 = object.Equals(senderName, "RightHandler");
 					if (flag2)
 					{
 						this.handlerStart = 10;
@@ -875,7 +844,7 @@ namespace MacroEditor
 					}
 					else
 					{
-						bool flag3 = object.Equals(NewLateBinding.LateGet(sender, null, "name", new object[0], null, null, null), "FlipHandler");
+						bool flag3 = object.Equals(senderName, "FlipHandler");
 						if (flag3)
 						{
 							this.handlerStart = 0;
@@ -907,7 +876,7 @@ namespace MacroEditor
 		// Token: 0x0600005E RID: 94 RVA: 0x00005A98 File Offset: 0x00003C98
 		private void MenuMacro_Paste_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)] = this.Macroholder.Clone();
 			string text = this.Macroholder[0] + " ";
 			bool flag = Convert.ToInt32(objectValue) < 10;
@@ -1020,8 +989,8 @@ namespace MacroEditor
 		// Token: 0x06000062 RID: 98 RVA: 0x00005E43 File Offset: 0x00004043
 		private void MenuBook_Cut_Click(object sender, EventArgs e)
 		{
-			this.MenuBook_Copy_Click(RuntimeHelpers.GetObjectValue(sender), e);
-			this.MenuBook_Clear_Click(RuntimeHelpers.GetObjectValue(sender), e);
+			this.MenuBook_Copy_Click(sender, e);
+			this.MenuBook_Clear_Click(sender, e);
 		}
 
 		// Token: 0x06000063 RID: 99 RVA: 0x00005E64 File Offset: 0x00004064
@@ -1157,7 +1126,7 @@ namespace MacroEditor
 		// Token: 0x06000066 RID: 102 RVA: 0x00006270 File Offset: 0x00004470
 		private void MenuMacro_Revert_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)] = this.BooksPreserved[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)].Clone();
 			this.SomethingEdited = true;
 			this.Ctrls[Convert.ToInt32(objectValue)].PerformClick();
@@ -1166,7 +1135,7 @@ namespace MacroEditor
 		// Token: 0x06000067 RID: 103 RVA: 0x00006324 File Offset: 0x00004524
 		private void MenuMacro_Copy_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			this.Macroholder = this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)].Clone();
 			this.InternalClipboardMethod = "Macro";
 			this.Ctrls[Convert.ToInt32(objectValue)].PerformClick();
@@ -1175,23 +1144,28 @@ namespace MacroEditor
 		// Token: 0x06000068 RID: 104 RVA: 0x000063BA File Offset: 0x000045BA
 		private void MenuMacro_Cut_Click(object sender, EventArgs e)
 		{
-			this.MenuMacro_Copy_Click(RuntimeHelpers.GetObjectValue(sender), e);
-			this.MenuMacro_Clear_Click(RuntimeHelpers.GetObjectValue(sender), e);
+			this.MenuMacro_Copy_Click(sender, e);
+			this.MenuMacro_Clear_Click(sender, e);
 		}
 
 		// Token: 0x06000069 RID: 105 RVA: 0x000063DC File Offset: 0x000045DC
 		private void MenuMacro_Clear_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
-			this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)] = new Macro();
+			int macroIndex = Convert.ToInt32(((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag);
+			this.Books[this.xBook].Rows[this.xRow].Macros[macroIndex] = new Macro();
 			this.SomethingEdited = true;
-			this.Ctrls[Convert.ToInt32(objectValue)].PerformClick();
+			// Update button text immediately
+			if (macroIndex < 10)
+				this.Ctrls[macroIndex].Text = "C" + this.FormatMacroIndex(macroIndex + 1);
+			else
+				this.Ctrls[macroIndex].Text = "A" + this.FormatMacroIndex(macroIndex - 9);
+			this.Ctrls[macroIndex].PerformClick();
 		}
 
 		// Token: 0x0600006A RID: 106 RVA: 0x000064A8 File Offset: 0x000046A8
 		private void MenuMacro_CopyClipboard_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			string text = "Type: Macro\n" + string.Join("\n", this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)].ToArray()).TrimEnd(new char[0]) + "\nEndMacro (Please do not remove empty lines as they're part of the sharing format). If you experience problems pasting, please make sure to download an up to date version.";
 			Clipboard.SetText(text);
 		}
@@ -1202,7 +1176,7 @@ namespace MacroEditor
 			bool flag = x == -1;
 			if (flag)
 			{
-				x = Convert.ToInt32(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+				x = Convert.ToInt32(((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag);
 			}
 			string[] array = this.CleanClipBoard().Split(new char[]
 			{
@@ -1276,7 +1250,7 @@ namespace MacroEditor
 		// Token: 0x0600006C RID: 108 RVA: 0x0000686C File Offset: 0x00004A6C
 		private void MenuRow_Paste_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
@@ -1294,7 +1268,7 @@ namespace MacroEditor
 		// Token: 0x0600006D RID: 109 RVA: 0x00006908 File Offset: 0x00004B08
 		private void MenuRow_Revert_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
@@ -1312,7 +1286,7 @@ namespace MacroEditor
 		// Token: 0x0600006E RID: 110 RVA: 0x000069BC File Offset: 0x00004BBC
 		private void MenuRow_Copy_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
@@ -1330,7 +1304,7 @@ namespace MacroEditor
 		// Token: 0x0600006F RID: 111 RVA: 0x00006A5C File Offset: 0x00004C5C
 		private void MenuRow_Cut_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
@@ -1349,7 +1323,7 @@ namespace MacroEditor
 		// Token: 0x06000070 RID: 112 RVA: 0x00006B4C File Offset: 0x00004D4C
 		private void MenuRow_Clear_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
@@ -1367,7 +1341,7 @@ namespace MacroEditor
 		// Token: 0x06000071 RID: 113 RVA: 0x00006C1C File Offset: 0x00004E1C
 		private void MenuRow_CopyClipboard_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			string[] array = new string[22];
 			array[0] = "Type: Row";
 			int num = 0;
@@ -1387,7 +1361,7 @@ namespace MacroEditor
 		// Token: 0x06000072 RID: 114 RVA: 0x00006CD4 File Offset: 0x00004ED4
 		private void MenuRow_PasteClipboard_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			string[] array = this.CleanClipBoard().Split(new string[] { "\n\nMacro:\n" }, StringSplitOptions.None);
 			bool flag = !this.VerifyClipboardFormat("Row", array);
 			checked
@@ -1480,14 +1454,14 @@ namespace MacroEditor
 		// Token: 0x06000074 RID: 116 RVA: 0x00007390 File Offset: 0x00005590
 		private void MenuHandler_CutSide_Click(object sender, EventArgs e)
 		{
-			this.MenuHandler_CopySide_Click(RuntimeHelpers.GetObjectValue(sender), e);
-			this.MenuHandler_ClearSide_Click(RuntimeHelpers.GetObjectValue(sender), e);
+			this.MenuHandler_CopySide_Click(sender, e);
+			this.MenuHandler_ClearSide_Click(sender, e);
 		}
 
 		// Token: 0x06000075 RID: 117 RVA: 0x000073B0 File Offset: 0x000055B0
 		private void MenuHandler_CopySide_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			string[] array = new string[12];
 			array[0] = "Type: Side";
 			bool flag = this.handlerStart == 10;
@@ -1519,7 +1493,7 @@ namespace MacroEditor
 		// Token: 0x06000076 RID: 118 RVA: 0x000074D8 File Offset: 0x000056D8
 		private void MenuHandler_PasteSide_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			string[] array = this.CleanClipBoard().Split(new string[] { "\n\nMacro:\n" }, StringSplitOptions.None);
 			bool flag = string.Equals(array[0], "Type: Side", StringComparison.Ordinal);
 			checked
@@ -1649,11 +1623,7 @@ namespace MacroEditor
 					this.UpdateStatusBar("Extraction complete", "");
 					foreach (object obj in base.Controls)
 					{
-						object objectValue = RuntimeHelpers.GetObjectValue(obj);
-						NewLateBinding.LateSet(objectValue, null, "enabled", new object[]
-						{
-							true
-						}, null, null);
+						((Control)obj).Enabled = true;
 					}
 					this.MenuMain_evaluate.Enabled = true;
 					this.MenuMain_Search.Enabled = true;
@@ -1752,7 +1722,8 @@ namespace MacroEditor
 		// Token: 0x0600007E RID: 126 RVA: 0x00007DE4 File Offset: 0x00005FE4
 		private void MenuText_Opening(object sender, CancelEventArgs e)
 		{
-			bool flag = object.Equals(NewLateBinding.LateGet(sender, null, "name", new object[0], null, null, null), "MenuText");
+			string senderName = (sender is Control ctrl) ? ctrl.Name : (sender is ToolStripDropDown tsd) ? tsd.Name : "";
+			bool flag = object.Equals(senderName, "MenuText");
 			if (flag)
 			{
 				this.OpenATMenu();
@@ -1777,9 +1748,10 @@ namespace MacroEditor
 			bool enabled = this.MenuRow.Enabled;
 			if (enabled)
 			{
-				this.MenuRow_Save.Text = "Save Row " + (Convert.ToInt32(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "sourcecontrol", new object[0], null, null, null), null, "tag", new object[0], null, null, null)) + 1).ToString();
-				this.MenuRow_CopyLocation.Text = "Copy Location (mcr" + MacroEditorUtils.GetMacroFileSuffix(this.xBook, Convert.ToInt32(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "sourcecontrol", new object[0], null, null, null), null, "tag", new object[0], null, null, null))) + ".dat)";
-				this.MenuRow_CopyLocation.Tag = "mcr" + MacroEditorUtils.GetMacroFileSuffix(this.xBook, Convert.ToInt32(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "sourcecontrol", new object[0], null, null, null), null, "tag", new object[0], null, null, null))) + ".dat";
+				int rowTag = Convert.ToInt32(((ContextMenuStrip)sender).SourceControl.Tag);
+				this.MenuRow_Save.Text = "Save Row " + (rowTag + 1).ToString();
+				this.MenuRow_CopyLocation.Text = "Copy Location (mcr" + MacroEditorUtils.GetMacroFileSuffix(this.xBook, rowTag) + ".dat)";
+				this.MenuRow_CopyLocation.Tag = "mcr" + MacroEditorUtils.GetMacroFileSuffix(this.xBook, rowTag) + ".dat";
 			}
 		}
 
@@ -1944,7 +1916,7 @@ namespace MacroEditor
 		// Token: 0x06000086 RID: 134 RVA: 0x000084FB File Offset: 0x000066FB
 		private void menuText_Cut_Click(object sender, EventArgs e)
 		{
-			this.menuText_Copy_Click(RuntimeHelpers.GetObjectValue(sender), e);
+			this.menuText_Copy_Click(sender, e);
 			this.Lines[this.CurrentLine].SelectedText = "";
 		}
 
@@ -2039,7 +2011,7 @@ namespace MacroEditor
 		{
 			string input = "Type: Book BLM\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizzaja\n/ma \"Blizzaja\" <stnpc>\n\nMacro:\nFiraja\n/ma \"Firaja\" <stnpc>\n\nMacro:\nWaterja\n/ma \"Waterja\" <stnpc>\n\nMacro:\nThundaja\n/ma \"Thundaja\" <stnpc>\n\nMacro:\nStoneja\n/ma \"Stoneja\" <stnpc>\n\nMacro:\nAeroja\n/ma \"Aeroja\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\n\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizard6\n/ma \"Blizzard VI\" <stnpc>\n\nMacro:\nFire6\n/ma \"Fire VI\" <stnpc>\n\nMacro:\nWater6\n/ma \"Water VI\" <stnpc>\n\nMacro:\nThunder6\n/ma \"Thunder VI\" <stnpc>\n\nMacro:\nStone6\n/ma \"Stone VI\" <stnpc>\n\nMacro:\nAero6\n/ma \"Aero VI\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\n\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizard5\n/ma \"Blizzard V\" <stnpc>\n\nMacro:\nFire5\n/ma \"Fire V\" <stnpc>\n\nMacro:\nWater5\n/ma \"Water V\" <stnpc>\n\nMacro:\nThunder5\n/ma \"Thunder V\" <stnpc>\n\nMacro:\nStone5\n/ma \"Stone V\" <stnpc>\n\nMacro:\nAero5\n/ma \"Aero V\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizard4\n/ma \"Blizzard IV\" <stnpc>\n\nMacro:\nFire4\n/ma \"Fire IV\" <stnpc>\n\nMacro:\nWater4\n/ma \"Water IV\" <stnpc>\n\nMacro:\nThunder4\n/ma \"Thunder IV\" <stnpc>\n\nMacro:\nStone4\n/ma \"Stone IV\" <stnpc>\n\nMacro:\nAero4\n/ma \"Aero IV\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizard3\n/ma \"Blizzard III\" <stnpc>\n\nMacro:\nFire3\n/ma \"Fire III\" <stnpc>\n\nMacro:\nWater3\n/ma \"Water III\" <stnpc>\n\nMacro:\nThunder3\n/ma \"Thunder III\" <stnpc>\n\nMacro:\nStone 3\n/ma \"Stone III\" <stnpc>\n\nMacro:\nAero3\n/ma \"Aero III\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBliz2\n/ma \"Blizzard II\" <stnpc>\n\nMacro:\nFire2\n/ma \"Fire II\" <stnpc>\n\nMacro:\nWater2\n/ma \"Water II\" <stnpc>\n\nMacro:\nThun2\n/ma \"Thunder II\" <stnpc>\n\nMacro:\nStone2\n/ma \"Stone II\" <stnpc>\n\nMacro:\nAero2\n/ma \"Aero II\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nSleep2\n/ma \"Sleep II\" <stnpc>\n\nMacro:\nBreak\n/ma \"Break\" <stnpc>\n\nMacro:\nSleep\n/ma \"Sleep\" <stnpc>\n\nMacro:\nGravity\n/ma \"Gravity\" <stnpc>\n\nMacro:\nDistract\n/ma \"Distract\" <stnpc>\n\nMacro:\nFrazzle\n/ma \"Frazzle\" <stnpc>\n\nMacro:\nSleepga\n/ma \"Sleepga\" <stnpc>\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nSleep2\n/ma \"Sleep II\" <stnpc>\n\nMacro:\nFiraga\n/ma \"Firaga\" <stnpc>\n\nMacro:\nWaterga\n/ma \"Waterga\" <stnpc>\n\nMacro:\nGravity\n/ma \"Gravity\" <stnpc>\n\nMacro:\nStonega\n/ma \"Stonega\" <stnpc>\n\nMacro:\nAeroga\n/ma \"Aeroga\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizzag\n/ma \"Blizzaga II\" <stnpc>\n\nMacro:\nFiraga2\n/ma \"Firaga II\" <stnpc>\n\nMacro:\nWaterga2\n/ma \"Waterga II\" <stnpc>\n\nMacro:\nThundag2\n/ma \"Thundaga II\" <stnpc>\n\nMacro:\nStonega2\n/ma \"Stonega II\" <stnpc>\n\nMacro:\nAeroga2\n/ma \"Aeroga II\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizzag3\n/ma \"Blizzaga III\" <stnpc>\n\nMacro:\nFiraga3\n/ma \"Firaga III\" <stnpc>\n\nMacro:\nWaterga3\n/ma \"Waterga III\" <stnpc>\n\nMacro:\nThundag3\n/ma \"Thundaga III\" <stnpc>\n\nMacro:\nStonega3\n/ma \"Stonega III\" <stnpc>\n\nMacro:\nAeroga3\n/ma \"Aeroga III\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nEndBook (Please do not remove empty lines as they're part of the sharing format). If you experience problems pasting, please make sure to download an up to date version.";
 			Regex regex = new Regex("(\\r\\n|\\r|\\n)");
-			this.MenuBook_PasteClipboard_Click(RuntimeHelpers.GetObjectValue(sender), e, regex.Replace(input, "\n"));
+			this.MenuBook_PasteClipboard_Click(sender, e, regex.Replace(input, "\n"));
 		}
 
 		// Token: 0x0600008A RID: 138 RVA: 0x000087F4 File Offset: 0x000069F4
@@ -2206,7 +2178,7 @@ namespace MacroEditor
 		// Token: 0x06000090 RID: 144 RVA: 0x00008E1A File Offset: 0x0000701A
 		private void MenuRow_CopyLocation_Click(object sender, EventArgs e)
 		{
-			Clipboard.SetText(this.macropath + "\\" + NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null).ToString());
+			Clipboard.SetText(this.macropath + "\\" + ((ToolStripMenuItem)sender).Tag.ToString());
 		}
 
 		// Token: 0x06000091 RID: 145 RVA: 0x00008E54 File Offset: 0x00007054
@@ -2233,7 +2205,7 @@ namespace MacroEditor
 			{
 				destination.xBook = this.xBook;
 				destination.xRow = this.xRow;
-				destination.tMacro = Convert.ToInt32(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+				destination.tMacro = Convert.ToInt32(((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag);
 				destination.ShowDialog();
 			}
 		}
@@ -2684,7 +2656,7 @@ namespace MacroEditor
 			{
 				EventHandler value2 = delegate(object a0, EventArgs a1)
 				{
-					this.MenuMacro_PasteClipboard_Click(RuntimeHelpers.GetObjectValue(a0), a1, -1);
+					this.MenuMacro_PasteClipboard_Click(a0, a1, -1);
 				};
 				ToolStripMenuItem menuMacro_PasteClipboard = this._MenuMacro_PasteClipboard;
 				if (menuMacro_PasteClipboard != null)
@@ -3019,7 +2991,7 @@ namespace MacroEditor
 			{
 				EventHandler value2 = delegate(object a0, EventArgs a1)
 				{
-					this.MenuBook_PasteClipboard_Click(RuntimeHelpers.GetObjectValue(a0), a1, "");
+					this.MenuBook_PasteClipboard_Click(a0, a1, "");
 				};
 				ToolStripMenuItem menuBook_PasteClipboard = this._MenuBook_PasteClipboard;
 				if (menuBook_PasteClipboard != null)
@@ -3434,7 +3406,7 @@ namespace MacroEditor
 			{
 				EventHandler value2 = delegate(object a0, EventArgs a1)
 				{
-					this.menuText_Paste_Click(RuntimeHelpers.GetObjectValue(a0), a1, 0);
+					this.menuText_Paste_Click(a0, a1, 0);
 				};
 				ToolStripMenuItem menuText_Paste = this._menuText_Paste;
 				if (menuText_Paste != null)
@@ -4157,9 +4129,9 @@ namespace MacroEditor
 		/// </summary>
 		private bool VerifyClipboardFormat(string expectedType, Array data)
 		{
-			bool valid = NewLateBinding.LateIndexGet(data, new object[] { 0 }, null)
+			bool valid = ((string[])data)[0]
 				.ToString().Trim().StartsWith("Type: " + expectedType)
-				& NewLateBinding.LateIndexGet(data, new object[] { checked(data.Length - 1) }, null)
+				& ((string[])data)[checked(data.Length - 1)]
 				.ToString().Trim().StartsWith("End" + expectedType);
 
 			if (valid)

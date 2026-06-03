@@ -5,12 +5,10 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace MacroEditor
 {
 	// Token: 0x02000008 RID: 8
-	[DesignerGenerated]
 	public partial class Assessment : Form
 	{
 		private Action<int, int, int> navigateCallback;
@@ -230,12 +228,12 @@ namespace MacroEditor
 		// Token: 0x06000028 RID: 40 RVA: 0x00002A9C File Offset: 0x00000C9C
 		private void Results_DoubleClick(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(this.Results.Items[this.Results.SelectedIndices[0]].Tag);
+			object[] tagArray = (object[])this.Results.Items[this.Results.SelectedIndices[0]].Tag;
 			if (this.navigateCallback != null)
 				this.navigateCallback(
-					Convert.ToInt32(NewLateBinding.LateIndexGet(objectValue, new object[] { 0 }, null)),
-					Convert.ToInt32(NewLateBinding.LateIndexGet(objectValue, new object[] { 1 }, null)),
-					Convert.ToInt32(NewLateBinding.LateIndexGet(objectValue, new object[] { 2 }, null)));
+					Convert.ToInt32(tagArray[0]),
+					Convert.ToInt32(tagArray[1]),
+					Convert.ToInt32(tagArray[2]));
 		}
 
 		// Token: 0x06000029 RID: 41 RVA: 0x00002B38 File Offset: 0x00000D38

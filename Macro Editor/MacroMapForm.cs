@@ -4,12 +4,10 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace MacroEditor
 {
 	// Token: 0x0200000B RID: 11
-	[DesignerGenerated]
 	public partial class MacroMapForm : Form
 	{
 		private Action<int, int, int> navigateCallback;
@@ -71,22 +69,21 @@ namespace MacroEditor
 		// Token: 0x06000135 RID: 309 RVA: 0x0000BCA0 File Offset: 0x00009EA0
 		private void mbox_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null), null, "split", new object[]
-			{
-				","
-			}, null, null, null));
+			string tagStr = (string)((Label)sender).Tag;
+			string[] parts = tagStr.Split(',');
 			base.ActiveControl = null;
 			if (this.navigateCallback != null)
 				this.navigateCallback(
-					Convert.ToInt32(NewLateBinding.LateIndexGet(objectValue, new object[] { 0 }, null)),
-					Convert.ToInt32(NewLateBinding.LateIndexGet(objectValue, new object[] { 1 }, null)),
-					Convert.ToInt32(NewLateBinding.LateIndexGet(objectValue, new object[] { 2 }, null)));
+					Convert.ToInt32(parts[0]),
+					Convert.ToInt32(parts[1]),
+					Convert.ToInt32(parts[2]));
 		}
 
 		// Token: 0x06000136 RID: 310 RVA: 0x0000BD4E File Offset: 0x00009F4E
 		private void MacroMap_Load(object sender, EventArgs e)
 		{
 			this.AutoScroll = true;
+			this.Width = 1740;
 			base.ActiveControl = null;
 		}
 	}

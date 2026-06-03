@@ -93,6 +93,6 @@ namespace MacroEditor.My
 		private static bool addedHandler;
 
 		// Token: 0x0400000A RID: 10
-		private static object addedHandlerLockObject = RuntimeHelpers.GetObjectValue(new object());
+		private static object addedHandlerLockObject = new object();
 	}
 }
