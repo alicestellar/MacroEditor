@@ -120,14 +120,14 @@ namespace MacroEditor
 			{
 				do
 				{
-					array[num] = "[" + this.mainWin.MacroContainer[this.xBook, this.xRow, num][0].PadRight(8, ' ') + "]";
+					array[num] = "[" + this.mainWin.Books[this.xBook].Rows[this.xRow].Macros[num][0].PadRight(8, ' ') + "]";
 					num++;
 				}
 				while (num <= 9);
 				int num2 = 10;
 				do
 				{
-					array2[num2 - 10] = "[" + this.mainWin.MacroContainer[this.xBook, this.xRow, num2 - 10][0].PadRight(8, ' ') + "]";
+					array2[num2 - 10] = "[" + this.mainWin.Books[this.xBook].Rows[this.xRow].Macros[num2 - 10][0].PadRight(8, ' ') + "]";
 					num2++;
 				}
 				while (num2 <= 19);

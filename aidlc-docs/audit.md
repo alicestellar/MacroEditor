@@ -133,3 +133,19 @@
 **Context**: CONSTRUCTION - Code Generation, Unit 1 (Deduplication)
 
 ---
+
+## Unit 1 - Complete
+**Timestamp**: 2026-06-02T01:35:00Z
+**User Input**: "Alright. It seems to work. For now, let's wrap up for the night. I need to sleep. We can continue work in the morning."
+**AI Response**: Unit 1 functional test passed. Committed as a8e0d86. Session ending. Next step on resume: Unit 2 (MVC Separation).
+**Context**: CONSTRUCTION - Unit 1 complete. Unit 2 next.
+
+---
+
+## Unit 2a - Data Model Extraction Start
+**Timestamp**: 2026-06-03T08:00:00Z
+**User Input**: "That sounds like a good place to start. Be aware that doing the data model classes will need you to replace the previous model structure in the rest of the application to have the application in a working state, so this will be a big lift."
+**AI Response**: Beginning Unit 2a — creating Macro/MacroRow/MacroBook typed classes and replacing all 75 MacroContainer/MacroPreserved access patterns across MainForm.cs and Destination.cs. Will build and present for manual testing when complete.
+**Context**: CONSTRUCTION - Unit 2a (Data Model extraction). Scope: 66 MacroContainer refs + 7 MacroPreserved refs in MainForm, 2 in Destination.
+
+---
