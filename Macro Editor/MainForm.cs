@@ -56,7 +56,7 @@ namespace MacroEditor
 			this.handlerEnd = 9;
 			this.RowHolder = new Macro[20];
 			this.BookHolder = new Macro[10, 20];
-			this.debuglimit = 19;
+			this.debuglimit = 39;
 			this.copiedbookname = "";
 			this.CurrentLine = -1;
 			this.InternalClipboardMethod = "";
@@ -103,7 +103,7 @@ namespace MacroEditor
 		public bool WriteFile(int Book, int Row)
 		{
 			Log("WriteFile: book=" + Book + " row=" + Row);
-			return this.fileManager.WriteRow(this.macropath, Book, Row, this.Books[Book].Rows[Row], this.BooksPreserved[Book].Rows[Row], this.debuglimit);
+			return this.fileManager.WriteRow(this.macropath, Book, Row, this.Books[Book].Rows[Row], this.BooksPreserved[Book].Rows[Row], 19);
 		}
 
 		// Token: 0x06000047 RID: 71 RVA: 0x00003C98 File Offset: 0x00001E98
@@ -425,6 +425,7 @@ namespace MacroEditor
 			{
 				this.GetFFXIDirectory();
 			}
+			this.Activate();
 		}
 
 		// Token: 0x06000051 RID: 81 RVA: 0x00004704 File Offset: 0x00002904
@@ -1581,8 +1582,8 @@ namespace MacroEditor
 				{
 					this.macropath = this.OpenDialog.FileName.Substring(0, this.OpenDialog.FileName.LastIndexOf("\\"));
 					this.Warning.Visible = false;
-					string ttlPath = this.macropath + "\\mcr.ttl";
-					List<string> bookNames = this.fileManager.ReadBookNames(ttlPath);
+					List<string> bookNames = this.fileManager.ReadBookNames(this.macropath);
+					this.debuglimit = bookNames.Count - 1;
 					this.Contents.Items.Clear();
 					this.Books.Clear();
 					this.BooksPreserved.Clear();
@@ -1667,7 +1668,7 @@ namespace MacroEditor
 						}
 						while (num3 <= 9);
 						num2++;
-						if (num2 > 19)
+						if (num2 > this.debuglimit)
 						{
 							goto IL_B3;
 						}
@@ -1702,13 +1703,11 @@ namespace MacroEditor
 			List<string> bookNames = new List<string>();
 			checked
 			{
-				int num = 0;
-				do
+				int num = this.Contents.Items.Count - 1;
+				for (int i = 0; i <= num; i++)
 				{
-					bookNames.Add(this.Contents.Items[num].ToString());
-					num++;
+					bookNames.Add(this.Contents.Items[i].ToString());
 				}
-				while (num <= 19);
 				this.fileManager.WriteBookNames(this.macropath, bookNames);
 			}
 		}

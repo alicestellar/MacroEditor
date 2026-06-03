@@ -25,12 +25,33 @@ namespace MacroEditor
         }
 
         /// <summary>
-        /// Reads book names from a mcr.ttl file.
-        /// Returns a list of book name strings.
+        /// Reads book names from mcr.ttl (books 1-20) and mcr_2.ttl (books 21-40).
+        /// Accepts the macro directory path and returns a list of up to 40 book name strings.
         /// </summary>
-        public List<string> ReadBookNames(string ttlFilePath)
+        public List<string> ReadBookNames(string macroPath)
         {
-            Log("MacroFileManager: ReadBookNames from " + ttlFilePath);
+            Log("MacroFileManager: ReadBookNames from directory " + macroPath);
+            // Read mcr.ttl (books 1-20)
+            string ttlPath = macroPath + "\\mcr.ttl";
+            List<string> names = ReadSingleTtl(ttlPath);
+
+            // Read mcr_2.ttl (books 21-40) if it exists
+            string ttl2Path = macroPath + "\\mcr_2.ttl";
+            if (File.Exists(ttl2Path))
+            {
+                List<string> names2 = ReadSingleTtl(ttl2Path);
+                names.AddRange(names2);
+            }
+
+            return names;
+        }
+
+        /// <summary>
+        /// Reads book names from a single .ttl file.
+        /// </summary>
+        private List<string> ReadSingleTtl(string ttlFilePath)
+        {
+            Log("MacroFileManager: ReadSingleTtl from " + ttlFilePath);
             byte[] array = File.ReadAllBytes(ttlFilePath);
             string text = "";
             checked
@@ -180,20 +201,57 @@ namespace MacroEditor
         }
 
         /// <summary>
-        /// Writes book names to mcr.ttl file.
+        /// Writes book names to mcr.ttl (books 1-20) and mcr_2.ttl (books 21-40).
+        /// Accepts the macro directory path and a list of up to 40 book names.
         /// </summary>
         public bool WriteBookNames(string macroPath, List<string> bookNames)
         {
             Log("MacroFileManager: WriteBookNames to " + macroPath);
-            string path = macroPath + "\\mcr.ttl";
-            byte[] sourceArray = File.ReadAllBytes(path);
+            // Write first 20 names to mcr.ttl
+            List<string> first20 = bookNames.GetRange(0, Math.Min(20, bookNames.Count));
+            bool success = WriteSingleTtl(macroPath + "\\mcr.ttl", first20);
+
+            // Write names 21-40 to mcr_2.ttl (if we have more than 20)
+            if (bookNames.Count > 20)
+            {
+                List<string> next20 = bookNames.GetRange(20, Math.Min(20, bookNames.Count - 20));
+                success = success && WriteSingleTtl(macroPath + "\\mcr_2.ttl", next20);
+            }
+
+            return success;
+        }
+
+        /// <summary>
+        /// Writes book names to a single .ttl file. Pads to exactly 20 names if fewer provided.
+        /// </summary>
+        private bool WriteSingleTtl(string ttlPath, List<string> names)
+        {
+            Log("MacroFileManager: WriteSingleTtl to " + ttlPath);
+            // Pad to 20 names if needed
+            while (names.Count < 20)
+            {
+                names.Add("Book " + (names.Count + 1));
+            }
+
+            byte[] sourceArray;
+            if (File.Exists(ttlPath))
+            {
+                sourceArray = File.ReadAllBytes(ttlPath);
+            }
+            else
+            {
+                // Create default 8-byte header for new file
+                sourceArray = new byte[8];
+                sourceArray[0] = 1;
+            }
+
             StringBuilder stringBuilder = new StringBuilder();
             checked
             {
-                int num = bookNames.Count - 1;
+                int num = names.Count - 1;
                 for (int i = 0; i <= num; i++)
                 {
-                    string name = bookNames[i].Trim();
+                    string name = names[i].Trim();
                     string truncated = name.Substring(0, Math.Min(15, name.Length));
                     stringBuilder.Append(this.Fill(truncated, 16));
                 }
@@ -207,27 +265,12 @@ namespace MacroEditor
                 {
                     byte[] bytes = Encoding.Default.GetBytes(stringBuilder.ToString());
                     byte[] array4 = ComputeMD5(bytes);
-                    StringBuilder stringBuilder3 = new StringBuilder();
-                    int num3 = array4.Length - 1;
-                    for (int j = 0; j <= num3; j++)
-                    {
-                        stringBuilder3.Append((char)array4[j]);
-                    }
-                    bool flag2 = stringBuilder.Length != 320;
-                    if (flag2)
-                    {
-                        MessageBox.Show("Compilation of Macro Names file failed.", "Macro Editor", MessageBoxButtons.OK);
-                        return false;
-                    }
-                    else
-                    {
-                        byte[] array5 = new byte[8 + array4.Length + bytes.Length - 1 + 1];
-                        Array.Copy(sourceArray, 0, array5, 0, 8);
-                        Array.Copy(array4, 0, array5, 8, 16);
-                        Array.Copy(bytes, 0, array5, 24, bytes.Length);
-                        File.WriteAllBytes(path, array5);
-                        return true;
-                    }
+                    byte[] array5 = new byte[8 + array4.Length + bytes.Length];
+                    Array.Copy(sourceArray, 0, array5, 0, Math.Min(8, sourceArray.Length));
+                    Array.Copy(array4, 0, array5, 8, 16);
+                    Array.Copy(bytes, 0, array5, 24, bytes.Length);
+                    File.WriteAllBytes(ttlPath, array5);
+                    return true;
                 }
             }
         }
