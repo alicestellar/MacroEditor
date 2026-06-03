@@ -190,6 +190,8 @@ Units must execute in strict order due to dependencies:
 | 7 | Step 3: Scrollbar UI | Step 2 | Manual test run |
 | 8 | Step 4: Template Variables | Step 1 | Manual test run |
 | 9 | Step 5: Export with Substitution | Step 4 | Manual test run |
+| 10 | Undo/Redo System | Step 0b | Manual test run |
+| 11 | Editable Macro Map | Step 0b | Manual test run |
 
 ## Success Criteria
 - **Primary Goal**: Transform monolithic decompiled code into maintainable OOP architecture, then add modern features

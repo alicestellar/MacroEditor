@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using Microsoft.VisualBasic.CompilerServices;
+
 using Yekyaa.FFXIEncoding;
 
 namespace MacroEditor
@@ -59,7 +59,7 @@ namespace MacroEditor
                     bool flag = atphrases[i].value.Trim().Length == 0;
                     if (!flag)
                     {
-                        bool flag2 = Operators.CompareString(atphrases[i].value.Substring(0, 1), "\u3010", false) == 0;
+                        bool flag2 = string.Equals(atphrases[i].value.Substring(0, 1), "\u3010", StringComparison.Ordinal);
                         if (flag2)
                         {
                             toolStripMenuItem = (ToolStripMenuItem)this.ATmenu.DropDownItems.Add(atphrases[i].value);
@@ -170,7 +170,7 @@ namespace MacroEditor
                     for (int j = 0; j <= num3; j++)
                     {
                         ToolStripMenuItem toolStripMenuItem2 = (ToolStripMenuItem)toolStripMenuItem.DropDownItems[j];
-                        bool flag3 = Operators.CompareString(toolStripMenuItem2.Text.Substring(0, Math.Min(searchText.Length, toolStripMenuItem2.Text.Length)).ToLower(), searchText.ToLower(), false) == 0;
+                        bool flag3 = string.Equals(toolStripMenuItem2.Text.Substring(0, Math.Min(searchText.Length, toolStripMenuItem2.Text.Length)).ToLower(), searchText.ToLower(), StringComparison.Ordinal);
                         if (flag3)
                         {
                             toolStripMenuItem.Visible = true;

@@ -1,5 +1,4 @@
 using System;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace MacroEditor
 {
@@ -20,7 +19,7 @@ namespace MacroEditor
             }
             else
             {
-                return Conversions.ToString(book) + Conversions.ToString(row);
+                return book.ToString() + row.ToString();
             }
         }
     }

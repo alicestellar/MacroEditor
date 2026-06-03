@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -63,7 +63,7 @@ namespace MacroEditor
 					button.Top = 11;
 					button.Tag = num2;
 					button.Text = (num2 + 1).ToString();
-					button.Name = "Row" + Conversions.ToString(num2);
+					button.Name = "Row" + num2.ToString();
 					button.BackColor = this.BackColor;
 					this.Rows.Add(num2, button);
 					base.Controls.Add(button);
@@ -114,7 +114,7 @@ namespace MacroEditor
 		{
 			string[] array = new string[10];
 			string[] array2 = new string[10];
-			this.xRow = Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			this.xRow = Convert.ToInt32(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
 			int num = 0;
 			checked
 			{

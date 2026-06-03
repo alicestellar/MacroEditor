@@ -4,8 +4,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.CompilerServices;
+using System.Windows.Forms;
 
 namespace MacroEditor
 {
@@ -39,7 +38,7 @@ namespace MacroEditor
                 int num = array.Length - 1;
                 for (int i = 0; i <= num; i++)
                 {
-                    text += Conversions.ToString(Convert.ToChar(array[i]));
+                    text += Convert.ToChar(array[i]).ToString();
                 }
             }
             Match match = new Regex("((.{15}\\x00)+$)").Match(text);
@@ -67,7 +66,7 @@ namespace MacroEditor
                 int num = array.Length - 1;
                 for (int i = 24; i <= num; i++)
                 {
-                    text += Conversions.ToString(Convert.ToChar(array[i]));
+                    text += Convert.ToChar(array[i]).ToString();
                 }
                 text = text.Replace('\0', '\n');
                 MacroRow row = new MacroRow();
@@ -117,7 +116,7 @@ namespace MacroEditor
                 }
                 catch (Exception ex)
                 {
-                    Interaction.MsgBox("Cannot read " + text + ".", MsgBoxStyle.OkOnly, null);
+                    MessageBox.Show("Cannot read " + text + ".", "Macro Editor", MessageBoxButtons.OK);
                     return false;
                 }
             }
@@ -149,7 +148,7 @@ namespace MacroEditor
                 bool result;
                 if (flag2)
                 {
-                    Interaction.MsgBox("Compilation of " + MacroEditorUtils.GetMacroFileSuffix(bookIndex, rowIndex) + "failed.", MsgBoxStyle.OkOnly, null);
+                    MessageBox.Show("Compilation of " + MacroEditorUtils.GetMacroFileSuffix(bookIndex, rowIndex) + "failed.", "Macro Editor", MessageBoxButtons.OK);
                     result = false;
                 }
                 else
@@ -160,7 +159,7 @@ namespace MacroEditor
                     int num3 = array2.Length - 1;
                     for (int j = 0; j <= num3; j++)
                     {
-                        stringBuilder2.Append(Strings.Chr((int)array2[j]));
+                        stringBuilder2.Append((char)array2[j]);
                     }
                     byte[] array3 = new byte[8 + array2.Length + bytes.Length - 1 + 1];
                     Array.Copy(sourceArray, 0, array3, 0, 8);
@@ -201,7 +200,7 @@ namespace MacroEditor
                 bool flag = stringBuilder.Length != 320;
                 if (flag)
                 {
-                    Interaction.MsgBox("Compilation of Macro Book titles failed", MsgBoxStyle.OkOnly, null);
+                    MessageBox.Show("Compilation of Macro Book titles failed", "Macro Editor", MessageBoxButtons.OK);
                     return false;
                 }
                 else
@@ -212,12 +211,12 @@ namespace MacroEditor
                     int num3 = array4.Length - 1;
                     for (int j = 0; j <= num3; j++)
                     {
-                        stringBuilder3.Append(Strings.Chr((int)array4[j]));
+                        stringBuilder3.Append((char)array4[j]);
                     }
                     bool flag2 = stringBuilder.Length != 320;
                     if (flag2)
                     {
-                        Interaction.MsgBox("Compilation of Macro Names file failed.", MsgBoxStyle.OkOnly, null);
+                        MessageBox.Show("Compilation of Macro Names file failed.", "Macro Editor", MessageBoxButtons.OK);
                         return false;
                     }
                     else

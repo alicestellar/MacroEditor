@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Microsoft.VisualBasic.CompilerServices;
+
 
 namespace MacroEditor
 {
@@ -85,7 +85,7 @@ namespace MacroEditor
                                             LineIndex = num4,
                                             Severity = ValidationSeverity.Error,
                                             IType = 2,
-                                            Message = "After auto-translate, the line is " + Conversions.ToString(text2.Length) + " characters.",
+                                            Message = "After auto-translate, the line is " + text2.Length.ToString() + " characters.",
                                             Content = text
                                         });
                                     }

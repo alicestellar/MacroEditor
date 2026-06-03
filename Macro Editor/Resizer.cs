@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
-using Microsoft.VisualBasic;
 
 namespace MacroEditor
 {
@@ -25,7 +24,7 @@ namespace MacroEditor
 				Control control = (Control)obj;
 				try
 				{
-					bool flag = !Information.IsNothing(control.Parent);
+					bool flag = control.Parent != null;
 					if (flag)
 					{
 						int height = control.Parent.Height;
@@ -63,7 +62,7 @@ namespace MacroEditor
 				Control control = (Control)obj;
 				try
 				{
-					bool flag = !Information.IsNothing(control.Parent);
+					bool flag = control.Parent != null;
 					if (flag)
 					{
 						int height = control.Parent.Height;
@@ -80,10 +79,10 @@ namespace MacroEditor
 								float num2;
 								checked
 								{
-									control.Width = (int)Math.Round(Conversion.Int(unchecked((double)width * controlInfo.widthPercent)));
-									control.Height = (int)Math.Round(Conversion.Int(unchecked((double)height * controlInfo.heightPercent)));
-									control.Top = (int)Math.Round(Conversion.Int(unchecked((double)height * controlInfo.topOffsetPercent)));
-									control.Left = (int)Math.Round(Conversion.Int(unchecked((double)width * controlInfo.leftOffsetPercent)));
+									control.Width = (int)Math.Round(Math.Floor(unchecked((double)width * controlInfo.widthPercent)));
+									control.Height = (int)Math.Round(Math.Floor(unchecked((double)height * controlInfo.heightPercent)));
+									control.Top = (int)Math.Round(Math.Floor(unchecked((double)height * controlInfo.topOffsetPercent)));
+									control.Left = (int)Math.Round(Math.Floor(unchecked((double)width * controlInfo.leftOffsetPercent)));
 									font = control.Font;
 									num = (float)((double)control.Width / (double)controlInfo.originalWidth);
 									num2 = (float)((double)control.Height / (double)controlInfo.originalHeight);
