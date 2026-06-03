@@ -80,12 +80,26 @@
 - **Entry Criteria**: Unit 2 complete (needs clean data model in place)
 - **Exit Criteria**: Undo/Redo works for text edits and bulk operations, buttons reflect state
 
-### Unit 10: Editable Macro Map
+### Unit 10: Macro Map Visual Enhancements
+- **Purpose**: Improve macro map readability with color coding, page navigation, and dividers
+- **Scope**:
+  - Add a fixed header/toolbar area at the top of the macro map window containing CTRL/ALT labels and action buttons (shared with Unit 11's Edit/Save buttons)
+  - Add divider lines between each "page" (row pair: Ctrl row + Alt row)
+  - "CTRL" and "ALT" labels pinned in the header — always visible regardless of scroll position (CTRL = faded blue, ALT = faded red)
+  - Color-code macro labels: Ctrl macros = faded blue background, Alt macros = faded red background (instead of grey)
+  - Add page navigation buttons at top and bottom of scrollbar (move to next/prev page, center window)
+  - Implement paged scrolling: scroll position tracks continuously (same mouse wheel delta units) but the view snaps to show one page at a time, only changing when scroll value crosses a page boundary
+- **Deliverables**: Modified MacroMapForm with color coding, dividers, page labels, and paged scroll behavior
+- **Testing Gate**: Manual run — verify color coding, dividers visible, page buttons navigate correctly, scroll snaps between pages
+- **Entry Criteria**: Unit 2 complete (needs clean data model)
+- **Exit Criteria**: Macro map shows colored Ctrl/Alt rows with dividers, paged scrolling works
+
+### Unit 11: Editable Macro Map
 - **Purpose**: Add a second, editable macro map that allows side-by-side editing of macros within a book
 - **Scope**: Preserve existing read-only MacroMapForm. Add "Edit" button at top of read-only map to transfer to editable map. Create new editable macro map form with save button at top. Add "Edit in Macro Map" to book right-click context menu (below existing "Macro Map" option). Editable map allows direct text editing of macro titles and lines in the grid layout.
 - **Deliverables**: EditableMacroMapForm.cs, modified MacroMapForm (Edit button), modified MenuBook context menu
 - **Testing Gate**: Manual run — open macro map, click Edit to transfer to editable version, edit macros side-by-side, save, verify changes reflected in main editor
-- **Entry Criteria**: Unit 2 complete (needs clean data model)
+- **Entry Criteria**: Unit 10 complete (visual enhancements should be in place first)
 - **Exit Criteria**: Editable macro map opens, allows editing, saves correctly back to data model
 
 ## Code Organization (Target)

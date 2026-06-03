@@ -157,3 +157,25 @@
 **Context**: Roadmap update — new feature added as Unit 10.
 
 ---
+
+## Roadmap Addition - Macro Map Visual Enhancements
+**Timestamp**: 2026-06-03T10:00:00Z
+**User Input**: "I would like the macro map to have divider lines between each 'page,' as well as two small icons in the macro maps at the top of the window that say 'CTRL' and 'ALT.' The CTRL icon should be a faded blue. The ALT icon should be a faded red. The Macros that are activated with ctrl should be shaded the same way as ctrl, and vice versa, instead of being grey. The top row of each page is CTRL. The bottom row is ALT. I would also like buttons at the top and bottom of the scroll bar in the macro map. They should move the macro map to the next 'page' in that direction and center the window around it. The scroll bar should function in sections like this, scrolling and showing one page at a time. It should still take the same amount of scrolling with the mouse wheel to get to a new page as it does now (i.e. it tracks the location using the same units) but the actual view doesn't change until the scroll value moves to a new page."
+**AI Response**: Added Unit 10 (Macro Map Visual Enhancements) and renumbered Editable Macro Map to Unit 11 (depends on Unit 10 visual enhancements being in place first).
+**Context**: Roadmap update — new Unit 10 for visual enhancements, Unit 11 for editable map.
+
+---
+
+## 40-Book File Format Analysis
+**Timestamp**: 2026-06-03T10:15:00Z
+**User Input**: Provided sample files: mcr.sys, mcr.ttl, mcr_2.ttl, mcr.dat, mcr1.dat, mcr399.dat
+**AI Response**: Analysis complete. Format is straightforward:
+- mcr.sys: 28 bytes (8 header + 16 MD5 + 4 data = 0xDC/220). Preserve as-is.
+- mcr.ttl: Books 1-20 names (same format as before)
+- mcr_2.ttl: Books 21-40 names (identical format to mcr.ttl)
+- .dat files: Unchanged format. Numbering extends linearly: books 0-19 = mcr.dat through mcr199.dat, books 20-39 = mcr200.dat through mcr399.dat
+- GetMacroFileSuffix already generates correct filenames for books > 19
+- Changes needed: read/write mcr_2.ttl, increase debuglimit to 39, add scrollbar for 40 items
+**Context**: Unit 7 (40 Macro Sets) is now UNBLOCKED. Format analysis complete.
+
+---

@@ -185,13 +185,14 @@ Units must execute in strict order due to dependencies:
 | 2 | Step 0a: Deduplication | Baseline | Manual test run |
 | 3 | Step 0b: MVC Separation | Step 0a | Manual test run |
 | 4 | Step 0c: VB.NET Removal | Step 0b | Manual test + regression docs |
-| 5 | Step 1: config.json | Step 0c | Manual test run |
-| 6 | Step 2: 40 Macro Sets | Step 1 + sample files | BLOCKED |
-| 7 | Step 3: Scrollbar UI | Step 2 | Manual test run |
-| 8 | Step 4: Template Variables | Step 1 | Manual test run |
-| 9 | Step 5: Export with Substitution | Step 4 | Manual test run |
+| 5 | 40 Macro Sets | Step 0c | Manual test run |
+| 6 | Scrollbar UI | 40 Macro Sets | Manual test run |
+| 7 | config.json | Step 0c | Manual test run |
+| 8 | Template Variables | config.json | Manual test run |
+| 9 | Export with Substitution | Template Variables | Manual test run |
 | 10 | Undo/Redo System | Step 0b | Manual test run |
-| 11 | Editable Macro Map | Step 0b | Manual test run |
+| 11 | Macro Map Visual Enhancements | Step 0b | Manual test run |
+| 12 | Editable Macro Map | Macro Map Enhancements | Manual test run |
 
 ## Success Criteria
 - **Primary Goal**: Transform monolithic decompiled code into maintainable OOP architecture, then add modern features
