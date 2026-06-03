@@ -80,6 +80,14 @@
 - **Entry Criteria**: Unit 2 complete (needs clean data model in place)
 - **Exit Criteria**: Undo/Redo works for text edits and bulk operations, buttons reflect state
 
+### Unit 10: Editable Macro Map
+- **Purpose**: Add a second, editable macro map that allows side-by-side editing of macros within a book
+- **Scope**: Preserve existing read-only MacroMapForm. Add "Edit" button at top of read-only map to transfer to editable map. Create new editable macro map form with save button at top. Add "Edit in Macro Map" to book right-click context menu (below existing "Macro Map" option). Editable map allows direct text editing of macro titles and lines in the grid layout.
+- **Deliverables**: EditableMacroMapForm.cs, modified MacroMapForm (Edit button), modified MenuBook context menu
+- **Testing Gate**: Manual run — open macro map, click Edit to transfer to editable version, edit macros side-by-side, save, verify changes reflected in main editor
+- **Entry Criteria**: Unit 2 complete (needs clean data model)
+- **Exit Criteria**: Editable macro map opens, allows editing, saves correctly back to data model
+
 ## Code Organization (Target)
 
 ```text

@@ -149,3 +149,11 @@
 **Context**: CONSTRUCTION - Unit 2a (Data Model extraction). Scope: 66 MacroContainer refs + 7 MacroPreserved refs in MainForm, 2 in Destination.
 
 ---
+
+## Roadmap Addition - Editable Macro Map
+**Timestamp**: 2026-06-03T09:00:00Z
+**User Input**: "Add another item to the development roadmap: I want an additional version of the macromap. The current one should be preserved, but have an edit button added to allow you to transfer the macro map to the edit macro map. The edit button should be at the top of the macro map in its own row. The second macro map should be editable, and should be able to be saved with a save button, also at the top of the macro map in its own row. There should be an 'Edit in Macro Map' option added to the right click context menu below the current Macro Map option. There is currently no way to edit macros 'side by side' and the macro map is the perfect way to do this."
+**AI Response**: Added Unit 10 (Editable Macro Map) to the units of work. Depends on Unit 2 (data model). Preserves existing read-only map, adds Edit button to transfer to editable version, new context menu option, save button in editable map.
+**Context**: Roadmap update — new feature added as Unit 10.
+
+---

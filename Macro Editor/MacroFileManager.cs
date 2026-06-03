@@ -134,15 +134,15 @@ namespace MacroEditor
                 for (int i = 0; i <= num; i++)
                 {
                     preservedRow.Macros[i] = row.Macros[i].Clone();
-                    stringBuilder.Append(MacroEditorUtils.Fill("", 4));
+                    stringBuilder.Append(this.Fill("", 4));
                     int num2 = 1;
                     do
                     {
-                        stringBuilder.Append(MacroEditorUtils.Fill(this.atEncoder.Encode(row.Macros[i][num2]), 61));
+                        stringBuilder.Append(this.Fill(this.atEncoder.Encode(row.Macros[i][num2]), 61));
                         num2++;
                     }
                     while (num2 <= 6);
-                    stringBuilder.Append(MacroEditorUtils.Fill(row.Macros[i][0].Substring(0, Math.Min(row.Macros[i][0].Length, 8)), 9));
+                    stringBuilder.Append(this.Fill(row.Macros[i][0].Substring(0, Math.Min(row.Macros[i][0].Length, 8)), 9));
                     stringBuilder.Append('\0');
                 }
                 bool flag2 = stringBuilder.Length != 7600;
@@ -196,7 +196,7 @@ namespace MacroEditor
                 {
                     string name = bookNames[i].Trim();
                     string truncated = name.Substring(0, Math.Min(15, name.Length));
-                    stringBuilder.Append(MacroEditorUtils.Fill(truncated, 16));
+                    stringBuilder.Append(this.Fill(truncated, 16));
                 }
                 bool flag = stringBuilder.Length != 320;
                 if (flag)
@@ -250,6 +250,14 @@ namespace MacroEditor
             {
                 return md5.ComputeHash(data);
             }
+        }
+
+        /// <summary>
+        /// Pads a string with null characters to the specified length.
+        /// </summary>
+        private string Fill(string str, int targetLength)
+        {
+            return str + new string('\0', checked(targetLength - str.Length));
         }
     }
 }

@@ -480,14 +480,14 @@ namespace MacroEditor
 					{
 						button2.Left = 195 + (num2 + 1) * (this.bWidth + 10);
 						button2.Top = 40;
-						button2.Text = "C" + MacroEditorUtils.FormatMacroIndex(num2 + 1);
+						button2.Text = "C" + this.FormatMacroIndex(num2 + 1);
 						this.Ctrls.Add(num2, button2);
 					}
 					else
 					{
 						button2.Left = 195 + (num2 + 1 - 10) * (this.bWidth + 10);
 						button2.Top = this.bHeight + 50;
-						button2.Text = "A" + MacroEditorUtils.FormatMacroIndex(num2 - 9);
+						button2.Text = "A" + this.FormatMacroIndex(num2 - 9);
 						this.Ctrls.Add(num2, button2);
 					}
 					button2.Click += this.Control_Click;
@@ -611,11 +611,11 @@ namespace MacroEditor
 					bool flag2 = this.xMacro < 10;
 					if (flag2)
 					{
-						this.Ctrls[this.xMacro].Text = "C" + MacroEditorUtils.FormatMacroIndex(this.xMacro + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+						this.Ctrls[this.xMacro].Text = "C" + this.FormatMacroIndex(this.xMacro + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
 					else
 					{
-						this.Ctrls[this.xMacro].Text = "A" + MacroEditorUtils.FormatMacroIndex(this.xMacro - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+						this.Ctrls[this.xMacro].Text = "A" + this.FormatMacroIndex(this.xMacro - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
 					bool flag3 = Operators.ConditionalCompareObjectGreater(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null), null, "length", new object[0], null, null, null), 8, false);
 					if (flag3)
@@ -765,11 +765,11 @@ namespace MacroEditor
 					bool flag = num < 10;
 					if (flag)
 					{
-						this.Ctrls[num].Text = "C" + MacroEditorUtils.FormatMacroIndex(num + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+						this.Ctrls[num].Text = "C" + this.FormatMacroIndex(num + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
 					else
 					{
-						this.Ctrls[num].Text = "A" + MacroEditorUtils.FormatMacroIndex(num - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+						this.Ctrls[num].Text = "A" + this.FormatMacroIndex(num - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
 					num++;
 				}
@@ -913,11 +913,11 @@ namespace MacroEditor
 			bool flag = Operators.ConditionalCompareObjectLess(objectValue, 10, false);
 			if (flag)
 			{
-				this.Ctrls[Conversions.ToInteger(objectValue)].Text = "C" + MacroEditorUtils.FormatMacroIndex(Conversions.ToInteger(Operators.AddObject(objectValue, 1))) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+				this.Ctrls[Conversions.ToInteger(objectValue)].Text = "C" + this.FormatMacroIndex(Conversions.ToInteger(Operators.AddObject(objectValue, 1))) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 			}
 			else
 			{
-				this.Ctrls[Conversions.ToInteger(objectValue)].Text = "A" + MacroEditorUtils.FormatMacroIndex(Conversions.ToInteger(Operators.SubtractObject(objectValue, 9))) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+				this.Ctrls[Conversions.ToInteger(objectValue)].Text = "A" + this.FormatMacroIndex(Conversions.ToInteger(Operators.SubtractObject(objectValue, 9))) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 			}
 			this.SomethingEdited = true;
 			this.Ctrls[Conversions.ToInteger(objectValue)].PerformClick();
@@ -1111,7 +1111,7 @@ namespace MacroEditor
 			{
 				array = Strings.Split(clp, "\n\nRow, Macro:\n", -1, CompareMethod.Binary);
 			}
-			bool flag2 = !MacroEditorUtils.VerifyClipboardFormat("Book", array);
+			bool flag2 = !this.VerifyClipboardFormat("Book", array);
 			checked
 			{
 				if (!flag2)
@@ -1389,7 +1389,7 @@ namespace MacroEditor
 		{
 			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
 			string[] array = Strings.Split(this.CleanClipBoard(), "\n\nMacro:\n", -1, CompareMethod.Binary);
-			bool flag = !MacroEditorUtils.VerifyClipboardFormat("Row", array);
+			bool flag = !this.VerifyClipboardFormat("Row", array);
 			checked
 			{
 				if (!flag)
@@ -1435,6 +1435,7 @@ namespace MacroEditor
 
 			this.Evaluation?.Hide();
 			this.Evaluation = new Assessment();
+			this.Evaluation.SetNavigateCallback((b, r, m) => this.FindMacro(b, r, m));
 			bool flag9 = results.Count > 0;
 			if (flag9)
 			{
@@ -1525,7 +1526,7 @@ namespace MacroEditor
 			{
 				if (flag)
 				{
-					bool flag2 = !MacroEditorUtils.VerifyClipboardFormat("Side", array);
+					bool flag2 = !this.VerifyClipboardFormat("Side", array);
 					if (!flag2)
 					{
 						array = array.Skip(1).ToArray<string>();
@@ -1714,6 +1715,7 @@ namespace MacroEditor
 					this.MenuBook_SaveBookNames.PerformClick();
 					this.UpdateStatusBar("Titles saved.", "Save Complete.");
 				}
+				this.SomethingEdited = false;
 			}
 		}
 
@@ -2017,6 +2019,7 @@ namespace MacroEditor
 					{
 						this.SearchResults?.Hide();
 						this.SearchResults = new Assessment();
+						this.SearchResults.SetNavigateCallback((b, r, m) => this.FindMacro(b, r, m));
 						foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
 						{
 							this.SearchResults.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.White, Color.Black);
@@ -2127,6 +2130,7 @@ namespace MacroEditor
 				{
 					this.MacroMap?.Hide();
 					this.MacroMap = new MacroMapForm();
+					this.MacroMap.SetNavigateCallback((b, r, m) => this.FindMacro(b, r, m));
 					int num = 0;
 					do
 					{
@@ -4135,5 +4139,40 @@ namespace MacroEditor
 
 		// Token: 0x04000044 RID: 68
 		public MacroMapForm MacroMap;
+
+		/// <summary>
+		/// Converts index 10 to "0" for FFXI display (10th macro shows as 0).
+		/// </summary>
+		private string FormatMacroIndex(int index)
+		{
+			if (index != 10)
+				return index.ToString();
+			else
+				return "0";
+		}
+
+		/// <summary>
+		/// Validates that clipboard data matches the expected paste format.
+		/// Returns true if valid, false otherwise.
+		/// </summary>
+		private bool VerifyClipboardFormat(string expectedType, Array data)
+		{
+			bool valid = NewLateBinding.LateIndexGet(data, new object[] { 0 }, null)
+				.ToString().Trim().StartsWith("Type: " + expectedType)
+				& NewLateBinding.LateIndexGet(data, new object[] { checked(data.Length - 1) }, null)
+				.ToString().Trim().StartsWith("End" + expectedType);
+
+			if (valid)
+			{
+				return true;
+			}
+			else
+			{
+				Interaction.MsgBox(
+					"Clipboard does not contain a " + expectedType + ".",
+					MsgBoxStyle.OkOnly, null);
+				return false;
+			}
+		}
 	}
 }

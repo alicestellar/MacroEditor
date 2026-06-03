@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-using MacroEditor.My;
 using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.CompilerServices;
 
@@ -15,6 +14,13 @@ namespace MacroEditor
 	[DesignerGenerated]
 	public partial class Assessment : Form
 	{
+		private Action<int, int, int> navigateCallback;
+
+		public void SetNavigateCallback(Action<int, int, int> callback)
+		{
+			this.navigateCallback = callback;
+		}
+
 		// Token: 0x06000017 RID: 23 RVA: 0x00002368 File Offset: 0x00000568
 		public Assessment()
 		{
@@ -115,9 +121,7 @@ namespace MacroEditor
 		// Token: 0x06000027 RID: 39 RVA: 0x0000284C File Offset: 0x00000A4C
 		public object AddResult(object b, object r, object m, object l, object itype, object description, object bgcolor, object fcolor)
 		{
-			string bookName;
-			try { bookName = MyProject.Forms.MainForm.Contents.Items[Conversions.ToInteger(b)].ToString(); }
-			catch { bookName = "Book " + Operators.AddObject(b, 1); }
+			string bookName = "Book " + Operators.AddObject(b, 1);
 
 			bool flag = Operators.ConditionalCompareObjectEqual(l, 0, false);
 			if (flag)
@@ -228,16 +232,11 @@ namespace MacroEditor
 		private void Results_DoubleClick(object sender, EventArgs e)
 		{
 			object objectValue = RuntimeHelpers.GetObjectValue(this.Results.Items[this.Results.SelectedIndices[0]].Tag);
-			MyProject.Forms.MainForm.FindMacro(Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				0
-			}, null)), Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				1
-			}, null)), Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				2
-			}, null)));
+			if (this.navigateCallback != null)
+				this.navigateCallback(
+					Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[] { 0 }, null)),
+					Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[] { 1 }, null)),
+					Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[] { 2 }, null)));
 		}
 
 		// Token: 0x06000029 RID: 41 RVA: 0x00002B38 File Offset: 0x00000D38

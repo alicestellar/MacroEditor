@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-using MacroEditor.My;
 using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.CompilerServices;
 
@@ -14,6 +13,13 @@ namespace MacroEditor
 	[DesignerGenerated]
 	public partial class MacroMapForm : Form
 	{
+		private Action<int, int, int> navigateCallback;
+
+		public void SetNavigateCallback(Action<int, int, int> callback)
+		{
+			this.navigateCallback = callback;
+		}
+
 		// Token: 0x0600012F RID: 303 RVA: 0x0000BA79 File Offset: 0x00009C79
 		public MacroMapForm()
 		{
@@ -71,16 +77,11 @@ namespace MacroEditor
 				","
 			}, null, null, null));
 			base.ActiveControl = null;
-			MyProject.Forms.MainForm.FindMacro(Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				0
-			}, null)), Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				1
-			}, null)), Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				2
-			}, null)));
+			if (this.navigateCallback != null)
+				this.navigateCallback(
+					Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[] { 0 }, null)),
+					Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[] { 1 }, null)),
+					Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[] { 2 }, null)));
 		}
 
 		// Token: 0x06000136 RID: 310 RVA: 0x0000BD4E File Offset: 0x00009F4E
