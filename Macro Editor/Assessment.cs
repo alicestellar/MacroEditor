@@ -115,6 +115,10 @@ namespace MacroEditor
 		// Token: 0x06000027 RID: 39 RVA: 0x0000284C File Offset: 0x00000A4C
 		public object AddResult(object b, object r, object m, object l, object itype, object description, object bgcolor, object fcolor)
 		{
+			string bookName;
+			try { bookName = MyProject.Forms.MainForm.Contents.Items[Conversions.ToInteger(b)].ToString(); }
+			catch { bookName = "Book " + Operators.AddObject(b, 1); }
+
 			bool flag = Operators.ConditionalCompareObjectEqual(l, 0, false);
 			if (flag)
 			{
@@ -122,7 +126,7 @@ namespace MacroEditor
 				{
 					string.Format("B: {0} ({1}), R: {2}, M: {3}, L: {4}", new object[]
 					{
-						MyProject.Forms.MainForm.Contents.Items[Conversions.ToInteger(b)],
+						bookName,
 						Operators.AddObject(b, 1),
 						Operators.AddObject(r, 1),
 						Operators.AddObject(m, 1),
@@ -139,7 +143,7 @@ namespace MacroEditor
 				{
 					string.Format("B: {0} ({1}), R: {2}, M: {3}, L: {4}", new object[]
 					{
-						MyProject.Forms.MainForm.Contents.Items[Conversions.ToInteger(b)],
+						bookName,
 						Operators.AddObject(b, 1),
 						Operators.AddObject(r, 1),
 						Operators.AddObject(m, 1),
@@ -158,6 +162,61 @@ namespace MacroEditor
 					r,
 					m,
 					l
+				};
+				this.Results.Items[this.Results.Items.Count - 1].BackColor = ((bgcolor != null) ? ((Color)bgcolor) : default(Color));
+				this.Results.Items[this.Results.Items.Count - 1].ForeColor = ((fcolor != null) ? ((Color)fcolor) : default(Color));
+				return true;
+			}
+		}
+
+		/// <summary>
+		/// Overload that accepts the book name directly (no MyProject.Forms lookup needed).
+		/// </summary>
+		public object AddResult(string bookName, int bookIndex, int rowIndex, int macroIndex, int lineIndex, object itype, object description, object bgcolor, object fcolor)
+		{
+			bool flag = lineIndex == 0;
+			if (flag)
+			{
+				this.Results.Items.Add(new ListViewItem(new string[]
+				{
+					string.Format("B: {0} ({1}), R: {2}, M: {3}, L: {4}", new object[]
+					{
+						bookName,
+						bookIndex + 1,
+						rowIndex + 1,
+						macroIndex + 1,
+						"Title"
+					}),
+					this.iTypes[Conversions.ToInteger(itype)],
+					Conversions.ToString(description),
+					Conversions.ToString(itype)
+				}));
+			}
+			else
+			{
+				this.Results.Items.Add(new ListViewItem(new string[]
+				{
+					string.Format("B: {0} ({1}), R: {2}, M: {3}, L: {4}", new object[]
+					{
+						bookName,
+						bookIndex + 1,
+						rowIndex + 1,
+						macroIndex + 1,
+						lineIndex + 1
+					}),
+					this.iTypes[Conversions.ToInteger(itype)],
+					Conversions.ToString(description),
+					Conversions.ToString(itype)
+				}));
+			}
+			checked
+			{
+				this.Results.Items[this.Results.Items.Count - 1].Tag = new object[]
+				{
+					bookIndex,
+					rowIndex,
+					macroIndex,
+					lineIndex
 				};
 				this.Results.Items[this.Results.Items.Count - 1].BackColor = ((bgcolor != null) ? ((Color)bgcolor) : default(Color));
 				this.Results.Items[this.Results.Items.Count - 1].ForeColor = ((fcolor != null) ? ((Color)fcolor) : default(Color));

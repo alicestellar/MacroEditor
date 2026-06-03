@@ -1429,165 +1429,51 @@ namespace MacroEditor
 		private void MenuMain_evaluate_Click(object sender, EventArgs e)
 		{
 			this.Rows[this.xRow].Focus();
-			Dictionary<int, string[]> dictionary = new Dictionary<int, string[]>();
-			Dictionary<int, string[]> dictionary2 = new Dictionary<int, string[]>();
-			int num = this.debuglimit;
-			checked
+
+			var validator = new MacroValidator(this.atEncoder);
+			var results = validator.ValidateAll(this.Books, this.debuglimit);
+
+			this.Evaluation?.Hide();
+			this.Evaluation = new Assessment();
+			bool flag9 = results.Count > 0;
+			if (flag9)
 			{
-				for (int i = 0; i <= num; i++)
+				foreach (var result in results)
 				{
-					int num2 = 0;
-					do
+					string bookName = this.Contents.Items.Count > result.BookIndex 
+						? this.Contents.Items[result.BookIndex].ToString() 
+						: "Book " + (result.BookIndex + 1);
+					if (result.Severity == ValidationSeverity.Error)
 					{
-						int num3 = 0;
-						do
-						{
-							bool flag = this.Books[i].Rows[num2].Macros[num3][0].Length > 8;
-							if (flag)
-							{
-								dictionary[dictionary.Count] = new string[]
-								{
-									Conversions.ToString(i),
-									Conversions.ToString(num2),
-									Conversions.ToString(num3),
-									Conversions.ToString(0),
-									"8 characters max.",
-									this.Books[i].Rows[num2].Macros[num3][0]
-								};
-							}
-							int num4 = 1;
-							do
-							{
-								string text = this.Books[i].Rows[num2].Macros[num3][num4];
-								string text2 = this.atEncoder.Encode(text);
-								Match match = new Regex("[^\\x00-\\x7f]").Match(text);
-								bool flag2 = text.Length == 0;
-								if (!flag2)
-								{
-									bool flag3 = text2.Length > 60;
-									if (flag3)
-									{
-										dictionary[dictionary.Count] = new string[]
-										{
-											Conversions.ToString(i),
-											Conversions.ToString(num2),
-											Conversions.ToString(num3),
-											Conversions.ToString(num4),
-											Conversions.ToString(2),
-											"After auto-translate, the line is " + Conversions.ToString(text2.Length) + " characters."
-										};
-									}
-									else
-									{
-										bool flag4 = match.Length != 0;
-										if (flag4)
-										{
-											dictionary2[dictionary2.Count] = new string[]
-											{
-												Conversions.ToString(i),
-												Conversions.ToString(num2),
-												Conversions.ToString(num3),
-												Conversions.ToString(num4),
-												Conversions.ToString(3),
-												text
-											};
-										}
-										else
-										{
-											bool flag5 = text.StartsWith("//");
-											if (flag5)
-											{
-												dictionary2[dictionary2.Count] = new string[]
-												{
-													Conversions.ToString(i),
-													Conversions.ToString(num2),
-													Conversions.ToString(num3),
-													Conversions.ToString(num4),
-													Conversions.ToString(4),
-													text
-												};
-											}
-											else
-											{
-												bool flag6 = !text.StartsWith("/");
-												if (flag6)
-												{
-													dictionary2[dictionary2.Count] = new string[]
-													{
-														Conversions.ToString(i),
-														Conversions.ToString(num2),
-														Conversions.ToString(num3),
-														Conversions.ToString(num4),
-														Conversions.ToString(5),
-														text
-													};
-												}
-												else
-												{
-													bool flag7 = text.StartsWith("/wait");
-													if (flag7)
-													{
-														dictionary2[dictionary2.Count] = new string[]
-														{
-															Conversions.ToString(i),
-															Conversions.ToString(num2),
-															Conversions.ToString(num3),
-															Conversions.ToString(num4),
-															Conversions.ToString(6),
-															text
-														};
-													}
-													else
-													{
-														bool flag8 = text.Contains("|UnknownItem>");
-														if (flag8)
-														{
-															dictionary2[dictionary2.Count] = new string[]
-															{
-																Conversions.ToString(i),
-																Conversions.ToString(num2),
-																Conversions.ToString(num3),
-																Conversions.ToString(num4),
-																Conversions.ToString(7),
-																text
-															};
-														}
-													}
-												}
-											}
-										}
-									}
-								}
-								num4++;
-							}
-							while (num4 <= 6);
-							num3++;
-						}
-						while (num3 <= 19);
-						num2++;
+						this.Evaluation.AddResult(
+							bookName,
+							result.BookIndex,
+							result.RowIndex,
+							result.MacroIndex,
+							result.LineIndex,
+							result.Message,
+							result.Content,
+							Color.Red, Color.White);
 					}
-					while (num2 <= 9);
-				}
-				this.Evaluation.Hide();
-				this.Evaluation = new Assessment();
-				bool flag9 = dictionary.Count + dictionary2.Count > 0;
-				if (flag9)
-				{
-					foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
+					else
 					{
-						this.Evaluation.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.Red, Color.White);
-					}
-					foreach (KeyValuePair<int, string[]> keyValuePair2 in dictionary2)
-					{
-						this.Evaluation.AddResult(keyValuePair2.Value[0], keyValuePair2.Value[1], keyValuePair2.Value[2], keyValuePair2.Value[3], keyValuePair2.Value[4], keyValuePair2.Value[5], Color.White, Color.Black);
+						this.Evaluation.AddResult(
+							bookName,
+							result.BookIndex,
+							result.RowIndex,
+							result.MacroIndex,
+							result.LineIndex,
+							Conversions.ToString(result.IType),
+							result.Content,
+							Color.White, Color.Black);
 					}
 				}
-				else
-				{
-					Interaction.MsgBox("No warnings or errors found.", MsgBoxStyle.OkOnly, null);
-				}
-				this.Evaluation.Show(this);
 			}
+			else
+			{
+				Interaction.MsgBox("No warnings or errors found.", MsgBoxStyle.OkOnly, null);
+			}
+			this.Evaluation.Show(this);
 		}
 
 		// Token: 0x06000074 RID: 116 RVA: 0x00007390 File Offset: 0x00005590
@@ -2129,7 +2015,7 @@ namespace MacroEditor
 					bool flag4 = dictionary.Count > 1;
 					if (flag4)
 					{
-						this.SearchResults.Hide();
+						this.SearchResults?.Hide();
 						this.SearchResults = new Assessment();
 						foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
 						{
@@ -2239,7 +2125,7 @@ namespace MacroEditor
 			{
 				if (enabled)
 				{
-					this.MacroMap.Hide();
+					this.MacroMap?.Hide();
 					this.MacroMap = new MacroMapForm();
 					int num = 0;
 					do
