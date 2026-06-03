@@ -92,6 +92,7 @@
     <Compile Include="MacroBook.cs" />
     <Compile Include="Resizer.cs" />
     <Compile Include="MacroEditorUtils.cs" />
+    <Compile Include="AutoTranslateEncoder.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assessment.resources" />

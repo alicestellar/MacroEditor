@@ -60,17 +60,14 @@ namespace MacroEditor
 			this.BookHolder = new Macro[10, 20];
 			this.debuglimit = 19;
 			this.copiedbookname = "";
-			this.ATmenu = new ToolStripMenuItem();
-			this.ATObject = new Dictionary<string, string>();
 			this.CurrentLine = -1;
 			this.InternalClipboardMethod = "";
 			this.SomethingEdited = false;
 			Log("Constructor: before Resizer/Regex");
 			Log("Constructor: before Resizer/Regex");
 			this.rs = new Resizer();
-			this.ATReadable = new Regex("\\xFD(.{4})\\xFD");
-			this.ATWritable = new Regex("\\<(.{8})\\|[^<>]+\\>");
 			this.lfs = new Regex("\\r|\\n");
+			this.atEncoder = new AutoTranslateEncoder();
 			this.Evaluation = null;
 			this.SearchResults = null;
 			this.MacroMap = null;
@@ -101,46 +98,6 @@ namespace MacroEditor
 			}
 			MySettingsProperty.Settings.Save();
 			return true;
-		}
-
-		// Token: 0x06000042 RID: 66 RVA: 0x0000375C File Offset: 0x0000195C
-		public bool ParseAT()
-		{
-			FFXIATPhraseLoader ffxiatphraseLoader = new FFXIATPhraseLoader();
-			FFXIATPhrase[] atphrases = ffxiatphraseLoader.ATPhrases;
-			ToolStripMenuItem toolStripMenuItem = (ToolStripMenuItem)this.ATmenu.DropDownItems.Add("test");
-			checked
-			{
-				int num = atphrases.Count<FFXIATPhrase>() - 1;
-				for (int i = 0; i <= num; i++)
-				{
-					bool flag = atphrases[i].value.Trim().Length == 0;
-					if (!flag)
-					{
-						bool flag2 = Operators.CompareString(atphrases[i].value.Substring(0, 1), "【", false) == 0;
-						if (flag2)
-						{
-							toolStripMenuItem = (ToolStripMenuItem)this.ATmenu.DropDownItems.Add(atphrases[i].value);
-						}
-						else
-						{
-							ToolStripMenuItem toolStripMenuItem2 = (ToolStripMenuItem)toolStripMenuItem.DropDownItems.Add(atphrases[i].value);
-							toolStripMenuItem2.Tag = atphrases[i].ToString();
-							this.ATObject.Add(atphrases[i].ToString().Substring(1, 8), atphrases[i].value);
-							toolStripMenuItem2.Click += this.ATPhrase_Click;
-						}
-					}
-				}
-				this.ATmenu.Text = "Auto-Translate";
-				this.MenuText.Items.Add(this.ATmenu);
-				return true;
-			}
-		}
-
-		// Token: 0x06000043 RID: 67 RVA: 0x000038B4 File Offset: 0x00001AB4
-		public string ATWriter(string macroline)
-		{
-			return this.ATWritable.Replace(this.lfs.Replace(macroline, ""), (Match found) => this.ATEncode(found.Groups[1].ToString()));
 		}
 
 		// Token: 0x06000044 RID: 68 RVA: 0x000038F0 File Offset: 0x00001AF0
@@ -179,7 +136,7 @@ namespace MacroEditor
 					int num2 = 1;
 					do
 					{
-						stringBuilder.Append(MacroEditorUtils.Fill(this.ATWriter(this.Books[Book].Rows[Row].Macros[i][num2]), 61));
+						stringBuilder.Append(MacroEditorUtils.Fill(this.atEncoder.Encode(this.Books[Book].Rows[Row].Macros[i][num2]), 61));
 						num2++;
 					}
 					while (num2 <= 6);
@@ -219,49 +176,6 @@ namespace MacroEditor
 					}
 				}
 				return result;
-			}
-		}
-
-		// Token: 0x06000045 RID: 69 RVA: 0x00003B70 File Offset: 0x00001D70
-		public string ATDecode(string phrase)
-		{
-			string text = "";
-			foreach (char value in phrase)
-			{
-				text += Convert.ToString(Convert.ToInt32(value), 16).PadLeft(2, '0');
-			}
-			string result;
-			try
-			{
-				result = string.Concat(new string[]
-				{
-					"<",
-					text,
-					"|",
-					this.ATObject[text.ToUpper()],
-					">"
-				});
-			}
-			catch (Exception ex)
-			{
-				result = "<" + text + "|UnknownItem>";
-			}
-			return result;
-		}
-
-		// Token: 0x06000046 RID: 70 RVA: 0x00003C34 File Offset: 0x00001E34
-		public string ATEncode(string phrase)
-		{
-			phrase = "FD" + phrase + "FD";
-			string text = "";
-			checked
-			{
-				int num = phrase.Length - 2;
-				for (int i = 0; i <= num; i += 2)
-				{
-					text += Convert.ToChar(Convert.ToUInt32(phrase.Substring(i, 2), 16)).ToString();
-				}
-				return text;
 			}
 		}
 
@@ -320,7 +234,7 @@ namespace MacroEditor
 					int num5 = 0;
 					do
 					{
-						this.Books[mbook].Rows[mset].Macros[num2][num4] = this.ATReadable.Replace(this.lfs.Replace(text.Substring(j + num5, 60).Trim(), ""), (Match found) => this.ATDecode(found.Groups[1].ToString()));
+						this.Books[mbook].Rows[mset].Macros[num2][num4] = this.atEncoder.Decode(this.lfs.Replace(text.Substring(j + num5, 60).Trim(), ""));
 						this.BooksPreserved[mbook].Rows[mset].Macros[num2][num4] = (string)this.Books[mbook].Rows[mset].Macros[num2][num4].Clone();
 						num4++;
 						num5 += 61;
@@ -336,49 +250,21 @@ namespace MacroEditor
 		public bool OpenATMenu()
 		{
 			bool flag = !this.MenuMacro.Enabled;
-			checked
+			if (flag)
 			{
-				bool result;
-				if (flag)
-				{
-					result = false;
-				}
-				else
-				{
-					TextBox textBox = this.Lines[this.CurrentLine];
-					bool flag2 = textBox.SelectionLength == 0;
-					if (flag2)
-					{
-						int selectionStart = textBox.SelectionStart;
-						int num = textBox.Text.Substring(0, textBox.SelectionStart).LastIndexOf(" ") + 1;
-						textBox.Select(num, selectionStart - num);
-					}
-					string selectedText = textBox.SelectedText;
-					int num2 = this.ATmenu.DropDownItems.Count - 1;
-					for (int i = 0; i <= num2; i++)
-					{
-						ToolStripMenuItem toolStripMenuItem = (ToolStripMenuItem)this.ATmenu.DropDownItems[i];
-						toolStripMenuItem.Visible = false;
-						int num3 = toolStripMenuItem.DropDownItems.Count - 1;
-						for (int j = 0; j <= num3; j++)
-						{
-							ToolStripMenuItem toolStripMenuItem2 = (ToolStripMenuItem)toolStripMenuItem.DropDownItems[j];
-							bool flag3 = Operators.CompareString(toolStripMenuItem2.Text.Substring(0, Math.Min(selectedText.Length, toolStripMenuItem2.Text.Length)).ToLower(), selectedText.ToLower(), false) == 0;
-							if (flag3)
-							{
-								toolStripMenuItem.Visible = true;
-								toolStripMenuItem2.Visible = true;
-							}
-							else
-							{
-								toolStripMenuItem2.Visible = false;
-							}
-						}
-					}
-					result = true;
-				}
-				return result;
+				return false;
 			}
+			TextBox textBox = this.Lines[this.CurrentLine];
+			bool flag2 = textBox.SelectionLength == 0;
+			if (flag2)
+			{
+				int selectionStart = textBox.SelectionStart;
+				int num = textBox.Text.Substring(0, textBox.SelectionStart).LastIndexOf(" ") + 1;
+				textBox.Select(num, selectionStart - num);
+			}
+			string selectedText = textBox.SelectedText;
+			this.atEncoder.FilterMenu(selectedText);
+			return true;
 		}
 
 		// Token: 0x0600004C RID: 76 RVA: 0x000040D8 File Offset: 0x000022D8
@@ -790,12 +676,14 @@ namespace MacroEditor
 				this.StatusD.Enabled = true;
 				try
 				{
-					this.ParseAT();
+					this.atEncoder.LoadPhrases();
+					this.MenuText.Items.Add(this.atEncoder.GetATMenu());
 				}
 				catch (Exception ex)
 				{
-					// AT phrases unavailable - FFXI data files not found. Non-fatal.
+					Log("AT phrase loading failed: " + ex.Message);
 				}
+				this.atEncoder.PhraseSelected += (phrase) => { this.Lines[this.CurrentLine].SelectedText = phrase; };
 				this.rs.FindAllControls(this);
 				ListBox contents = this.Contents;
 				this.Warning.Top = contents.Top;
@@ -803,12 +691,6 @@ namespace MacroEditor
 				this.Warning.Height = contents.Height;
 				this.Warning.Width = contents.Width;
 			}
-		}
-
-		// Token: 0x06000052 RID: 82 RVA: 0x00004EB0 File Offset: 0x000030B0
-		private void ATPhrase_Click(object sender, EventArgs e)
-		{
-			this.Lines[this.CurrentLine].SelectedText = Conversions.ToString(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
 		}
 
 		// Token: 0x06000053 RID: 83 RVA: 0x00004EE4 File Offset: 0x000030E4
@@ -1671,7 +1553,7 @@ namespace MacroEditor
 							do
 							{
 								string text = this.Books[i].Rows[num2].Macros[num3][num4];
-								string text2 = this.ATWriter(text);
+								string text2 = this.atEncoder.Encode(text);
 								Match match = new Regex("[^\\x00-\\x7f]").Match(text);
 								bool flag2 = text.Length == 0;
 								if (!flag2)
@@ -4500,12 +4382,6 @@ namespace MacroEditor
 		// Token: 0x04000038 RID: 56
 		public string copiedbookname;
 
-		// Token: 0x04000039 RID: 57
-		public ToolStripMenuItem ATmenu;
-
-		// Token: 0x0400003A RID: 58
-		public Dictionary<string, string> ATObject;
-
 		// Token: 0x0400003B RID: 59
 		public int CurrentLine;
 
@@ -4518,14 +4394,11 @@ namespace MacroEditor
 		// Token: 0x0400003E RID: 62
 		public Resizer rs;
 
-		// Token: 0x0400003F RID: 63
-		public Regex ATReadable;
-
-		// Token: 0x04000040 RID: 64
-		public Regex ATWritable;
-
 		// Token: 0x04000041 RID: 65
 		public Regex lfs;
+
+		// Token: 0x04000045 RID: 69
+		private AutoTranslateEncoder atEncoder;
 
 		// Token: 0x04000042 RID: 66
 		public Assessment Evaluation;
