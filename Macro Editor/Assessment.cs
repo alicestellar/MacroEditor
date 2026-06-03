@@ -201,6 +201,10 @@ namespace MacroEditor
 		{
 		}
 
+		// Token: 0x04000011 RID: 17
+		[CompilerGenerated]
+		private ListView _Results;
+
 		// Token: 0x04000012 RID: 18
 		private Panel output;
 

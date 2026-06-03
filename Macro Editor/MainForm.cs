@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -24,8 +24,12 @@ namespace MacroEditor
 	public partial class MainForm : Form
 	{
 		// Token: 0x0600003C RID: 60 RVA: 0x000033E8 File Offset: 0x000015E8
+		private static string _logPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "crash.log");
+		private static void Log(string msg) { System.IO.File.AppendAllText(_logPath, msg + "\n"); }
+
 		public MainForm()
 		{
+			Log("Constructor: start");
 			base.KeyDown += this.Form1_KeyDown;
 			base.Shown += this.Form1_Shown;
 			base.Load += this.Form1_Load;
@@ -33,11 +37,14 @@ namespace MacroEditor
 			base.Resize += this.Form1_Resize;
 			base.FormClosing += this.MainForm_FormClosing;
 			base.MouseWheel += this.MainForm_MouseWheel;
+			Log("Constructor: events wired");
 			this.Ctrls = new Dictionary<int, Button>();
 			this.Rows = new Dictionary<int, Button>();
 			this.Lines = new Dictionary<int, TextBox>();
+			Log("Constructor: before GetFFXIDirectory");
 			this.macropath = Conversions.ToString(Operators.ConcatenateObject(this.GetFFXIDirectory(), "USER\\"));
 			this.importpath = Conversions.ToString(Operators.ConcatenateObject(this.GetFFXIDirectory(), "USER\\"));
+			Log("Constructor: after GetFFXIDirectory");
 			this.MacroContainer = new string[20, 10, 20][];
 			this.MacroPreserved = new string[20, 10, 20][];
 			this.Contents = new ListBox();
@@ -58,14 +65,18 @@ namespace MacroEditor
 			this.CurrentLine = -1;
 			this.InternalClipboardMethod = "";
 			this.SomethingEdited = false;
+			Log("Constructor: before Resizer/Regex");
+			Log("Constructor: before Resizer/Regex");
 			this.rs = new Resizer();
 			this.ATReadable = new Regex("\\xFD(.{4})\\xFD");
 			this.ATWritable = new Regex("\\<(.{8})\\|[^<>]+\\>");
 			this.lfs = new Regex("\\r|\\n");
-			this.Evaluation = new Assessment();
-			this.SearchResults = new Assessment();
-			this.MacroMap = new MacroMapForm();
+			this.Evaluation = null;
+			this.SearchResults = null;
+			this.MacroMap = null;
+			Log("Constructor: before InitializeComponent");
 			this.InitializeComponent();
+			Log("Constructor: done");
 		}
 
 		// Token: 0x0600003D RID: 61 RVA: 0x00003604 File Offset: 0x00001804
@@ -838,35 +849,24 @@ namespace MacroEditor
 					num3++;
 				}
 				while (num3 <= 6);
-				try
+				foreach (object obj in base.Controls)
 				{
-					foreach (object obj in base.Controls)
+					object objectValue = RuntimeHelpers.GetObjectValue(obj);
+					bool flag3 = objectValue is Button | objectValue is ListBox;
+					if (flag3)
 					{
-						object objectValue = RuntimeHelpers.GetObjectValue(obj);
-						bool flag3 = objectValue is Button | objectValue is ListBox;
-						if (flag3)
+						NewLateBinding.LateSet(objectValue, null, "tabstop", new object[]
 						{
-							NewLateBinding.LateSet(objectValue, null, "tabstop", new object[]
-							{
-								false
-							}, null, null);
-						}
-						bool flag4 = Conversions.ToBoolean(Operators.NotObject(Operators.CompareObjectEqual(NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null), "MainMenu", false)));
-						if (flag4)
-						{
-							NewLateBinding.LateSet(objectValue, null, "enabled", new object[]
-							{
-								false
-							}, null, null);
-						}
+							false
+						}, null, null);
 					}
-				}
-				finally
-				{
-					IEnumerator enumerator;
-					if (enumerator is IDisposable)
+					bool flag4 = Conversions.ToBoolean(Operators.NotObject(Operators.CompareObjectEqual(NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null), "MainMenu", false)));
+					if (flag4)
 					{
-						(enumerator as IDisposable).Dispose();
+						NewLateBinding.LateSet(objectValue, null, "enabled", new object[]
+						{
+							false
+						}, null, null);
 					}
 				}
 				this.File_SaveRow.Enabled = false;
@@ -874,7 +874,14 @@ namespace MacroEditor
 				this.StatusBar.Enabled = true;
 				this.StatusH.Enabled = true;
 				this.StatusD.Enabled = true;
-				this.ParseAT();
+				try
+				{
+					this.ParseAT();
+				}
+				catch (Exception ex)
+				{
+					// AT phrases unavailable - FFXI data files not found. Non-fatal.
+				}
 				this.rs.FindAllControls(this);
 				ListBox contents = this.Contents;
 				this.Warning.Top = contents.Top;
@@ -1065,27 +1072,16 @@ namespace MacroEditor
 					num++;
 				}
 				while (num <= 19);
-				try
+				foreach (object obj in base.Controls)
 				{
-					foreach (object obj in base.Controls)
+					object objectValue = RuntimeHelpers.GetObjectValue(obj);
+					bool flag2 = objectValue is Button & NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null).ToString().StartsWith("Row");
+					if (flag2)
 					{
-						object objectValue = RuntimeHelpers.GetObjectValue(obj);
-						bool flag2 = objectValue is Button & NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null).ToString().StartsWith("Row");
-						if (flag2)
+						NewLateBinding.LateSet(objectValue, null, "backcolor", new object[]
 						{
-							NewLateBinding.LateSet(objectValue, null, "backcolor", new object[]
-							{
-								this.BackColor
-							}, null, null);
-						}
-					}
-				}
-				finally
-				{
-					IEnumerator enumerator;
-					if (enumerator is IDisposable)
-					{
-						(enumerator as IDisposable).Dispose();
+							this.BackColor
+						}, null, null);
 					}
 				}
 				NewLateBinding.LateSet(sender, null, "BackColor", new object[]
@@ -1114,27 +1110,16 @@ namespace MacroEditor
 				{
 					this.Lines[i].Text = this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "Tag", new object[0], null, null, null))][i];
 				}
-				try
+				foreach (object obj in base.Controls)
 				{
-					foreach (object obj in base.Controls)
+					object objectValue = RuntimeHelpers.GetObjectValue(obj);
+					bool flag = objectValue is Button & !NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null).ToString().StartsWith("Row");
+					if (flag)
 					{
-						object objectValue = RuntimeHelpers.GetObjectValue(obj);
-						bool flag = objectValue is Button & !NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null).ToString().StartsWith("Row");
-						if (flag)
+						NewLateBinding.LateSet(objectValue, null, "backcolor", new object[]
 						{
-							NewLateBinding.LateSet(objectValue, null, "backcolor", new object[]
-							{
-								this.BackColor
-							}, null, null);
-						}
-					}
-				}
-				finally
-				{
-					IEnumerator enumerator;
-					if (enumerator is IDisposable)
-					{
-						(enumerator as IDisposable).Dispose();
+							this.BackColor
+						}, null, null);
 					}
 				}
 				NewLateBinding.LateSet(sender, null, "BackColor", new object[]
@@ -1966,29 +1951,13 @@ namespace MacroEditor
 				bool flag9 = dictionary.Count + dictionary2.Count > 0;
 				if (flag9)
 				{
-					try
+					foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
 					{
-						foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
-						{
-							this.Evaluation.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.Red, Color.White);
-						}
+						this.Evaluation.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.Red, Color.White);
 					}
-					finally
+					foreach (KeyValuePair<int, string[]> keyValuePair2 in dictionary2)
 					{
-						Dictionary<int, string[]>.Enumerator enumerator;
-						((IDisposable)enumerator).Dispose();
-					}
-					try
-					{
-						foreach (KeyValuePair<int, string[]> keyValuePair2 in dictionary2)
-						{
-							this.Evaluation.AddResult(keyValuePair2.Value[0], keyValuePair2.Value[1], keyValuePair2.Value[2], keyValuePair2.Value[3], keyValuePair2.Value[4], keyValuePair2.Value[5], Color.White, Color.Black);
-						}
-					}
-					finally
-					{
-						Dictionary<int, string[]>.Enumerator enumerator2;
-						((IDisposable)enumerator2).Dispose();
+						this.Evaluation.AddResult(keyValuePair2.Value[0], keyValuePair2.Value[1], keyValuePair2.Value[2], keyValuePair2.Value[3], keyValuePair2.Value[4], keyValuePair2.Value[5], Color.White, Color.Black);
 					}
 				}
 				else
@@ -2192,24 +2161,13 @@ namespace MacroEditor
 						while (num3 <= 9);
 					}
 					this.UpdateStatusBar("Extraction complete", "");
-					try
+					foreach (object obj in base.Controls)
 					{
-						foreach (object obj in base.Controls)
+						object objectValue = RuntimeHelpers.GetObjectValue(obj);
+						NewLateBinding.LateSet(objectValue, null, "enabled", new object[]
 						{
-							object objectValue = RuntimeHelpers.GetObjectValue(obj);
-							NewLateBinding.LateSet(objectValue, null, "enabled", new object[]
-							{
-								true
-							}, null, null);
-						}
-					}
-					finally
-					{
-						IEnumerator enumerator;
-						if (enumerator is IDisposable)
-						{
-							(enumerator as IDisposable).Dispose();
-						}
+							true
+						}, null, null);
 					}
 					this.MenuMain_evaluate.Enabled = true;
 					this.MenuMain_Search.Enabled = true;
@@ -2650,17 +2608,9 @@ namespace MacroEditor
 					{
 						this.SearchResults.Hide();
 						this.SearchResults = new Assessment();
-						try
+						foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
 						{
-							foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
-							{
-								this.SearchResults.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.White, Color.Black);
-							}
-						}
-						finally
-						{
-							Dictionary<int, string[]>.Enumerator enumerator;
-							((IDisposable)enumerator).Dispose();
+							this.SearchResults.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.White, Color.Black);
 						}
 						this.SearchResults.Show(this);
 					}
@@ -4513,6 +4463,161 @@ namespace MacroEditor
 		// (get) Token: 0x06000128 RID: 296 RVA: 0x0000B9DA File Offset: 0x00009BDA
 		// (set) Token: 0x06000129 RID: 297 RVA: 0x0000B9E4 File Offset: 0x00009BE4
 		internal virtual TextBox Warning { get; [MethodImpl(MethodImplOptions.Synchronized)] set; }
+
+
+		// Backing fields for WithEvents properties
+		[CompilerGenerated]
+		private ContextMenuStrip _MenuMacro;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Cut;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Copy;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Paste;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Revert;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Clear;
+
+		[CompilerGenerated]
+		private ContextMenuStrip _MenuRow;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Cut;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Copy;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Paste;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Clear;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Revert;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_CopyClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_PasteClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_CopyClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_PasteClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMain_evaluate;
+
+		[CompilerGenerated]
+		private ContextMenuStrip _MenuBook;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Cut;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Copy;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Paste;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Clear;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Revert;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_CopyClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_PasteClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHandler_ClearSide;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHandler_CutSide;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHandler_CopySide;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHandler_PasteSide;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _File_Exit;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _File_Open;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _File_SaveRow;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _File_SaveAll;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_SaveBookNames;
+
+		[CompilerGenerated]
+		private ContextMenuStrip _MenuText;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _menuText_Cut;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _menuText_Copy;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _menuText_Paste;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Import;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Import;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMain_Search;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Wizard_BLM;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_SaveFiles;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHelp_Help;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHelp_FeatureTour;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_RenameBook;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_MacroMap;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Save;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_CopyLocation;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_CopyMacroMap;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Destination;
 
 		// Token: 0x0400001F RID: 31
 		private const int WM_CUT = 768;

@@ -80,7 +80,8 @@ namespace MacroEditor
 				base.Controls.Add(button2);
 				button2.Click += delegate(object a0, EventArgs a1)
 				{
-					this._Lambda$__21-0();
+					this.DialogResult = DialogResult.OK;
+					this.Close();
 				};
 				Button button3 = new Button();
 				button3.Top = 11;
@@ -91,7 +92,8 @@ namespace MacroEditor
 				base.Controls.Add(button3);
 				button3.Click += delegate(object a0, EventArgs a1)
 				{
-					this._Lambda$__21-1();
+					this.DialogResult = DialogResult.Cancel;
+					this.Close();
 				};
 				this.DestContents.SelectedIndexChanged += this.DestContents_SelectedIndexChanged;
 				this.DestContents.SelectedIndex = this.xBook;
