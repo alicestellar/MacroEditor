@@ -68,6 +68,7 @@ namespace MacroEditor
 			this.rs = new Resizer();
 			this.lfs = new Regex("\\r|\\n");
 			this.atEncoder = new AutoTranslateEncoder();
+			this.fileManager = new MacroFileManager(this.atEncoder);
 			this.Evaluation = null;
 			this.SearchResults = null;
 			this.MacroMap = null;
@@ -104,79 +105,7 @@ namespace MacroEditor
 		public bool WriteFile(int Book, int Row)
 		{
 			Log("WriteFile: book=" + Book + " row=" + Row);
-			string text = this.macropath + "\\mcr" + MacroEditorUtils.GetMacroFileSuffix(Book, Row) + ".dat";
-			bool flag = File.Exists(text);
-			byte[] sourceArray;
-			if (flag)
-			{
-				try
-				{
-					sourceArray = File.ReadAllBytes(text);
-				}
-				catch (Exception ex)
-				{
-					Interaction.MsgBox("Cannot read " + text + ".", MsgBoxStyle.OkOnly, null);
-					return false;
-				}
-			}
-			else
-			{
-				byte[] array = new byte[8];
-				array[0] = 1;
-				sourceArray = array;
-			}
-			StringBuilder stringBuilder = new StringBuilder();
-			int num = this.debuglimit;
-			checked
-			{
-				for (int i = 0; i <= num; i++)
-				{
-					this.BooksPreserved[Book].Rows[Row].Macros[i] = this.Books[Book].Rows[Row].Macros[i].Clone();
-					stringBuilder.Append(MacroEditorUtils.Fill("", 4));
-					int num2 = 1;
-					do
-					{
-						stringBuilder.Append(MacroEditorUtils.Fill(this.atEncoder.Encode(this.Books[Book].Rows[Row].Macros[i][num2]), 61));
-						num2++;
-					}
-					while (num2 <= 6);
-					stringBuilder.Append(MacroEditorUtils.Fill(this.Books[Book].Rows[Row].Macros[i][0].Substring(0, Math.Min(this.Books[Book].Rows[Row].Macros[i][0].Length, 8)), 9));
-					stringBuilder.Append('\0');
-				}
-				bool flag2 = stringBuilder.Length != 7600;
-				bool result;
-				if (flag2)
-				{
-					Interaction.MsgBox("Compilation of " + MacroEditorUtils.GetMacroFileSuffix(Book, Row) + "failed.", MsgBoxStyle.OkOnly, null);
-					result = false;
-				}
-				else
-				{
-					byte[] bytes = Encoding.Default.GetBytes(stringBuilder.ToString());
-					MD5CryptoServiceProvider md5CryptoServiceProvider = new MD5CryptoServiceProvider();
-					byte[] array2 = md5CryptoServiceProvider.ComputeHash(bytes);
-					StringBuilder stringBuilder2 = new StringBuilder();
-					int num3 = array2.Length - 1;
-					for (int j = 0; j <= num3; j++)
-					{
-						stringBuilder2.Append(Strings.Chr((int)array2[j]));
-					}
-					byte[] array3 = new byte[8 + array2.Length + bytes.Length - 1 + 1];
-					Array.Copy(sourceArray, 0, array3, 0, 8);
-					Array.Copy(array2, 0, array3, 8, 16);
-					Array.Copy(bytes, 0, array3, 24, bytes.Length);
-					try
-					{
-						File.WriteAllBytes(text, array3);
-						result = true;
-					}
-					catch (Exception ex2)
-					{
-						result = false;
-					}
-				}
-				return result;
-			}
+			return this.fileManager.WriteRow(this.macropath, Book, Row, this.Books[Book].Rows[Row], this.BooksPreserved[Book].Rows[Row], this.debuglimit);
 		}
 
 		// Token: 0x06000047 RID: 71 RVA: 0x00003C98 File Offset: 0x00001E98
@@ -201,48 +130,25 @@ namespace MacroEditor
 		public bool ReadMacroFile(int mbook, int mset, string filename, bool PreserveMacros)
 		{
 			Log("ReadMacroFile: " + filename);
-			byte[] array = File.ReadAllBytes(filename);
-			string text = "";
+			MacroRow row = this.fileManager.ReadMacroRow(filename);
+			if (row == null)
+			{
+				return false;
+			}
 			checked
 			{
-				int num = array.Length - 1;
-				for (int i = 24; i <= num; i++)
-				{
-					text += Conversions.ToString(Convert.ToChar(array[i]));
-				}
-				text = text.Replace('\0', '\n');
 				int num2 = 0;
-				bool result = true;
-				int num3 = text.Length - 1;
-				for (int j = 0; j <= num3; j += 380)
+				do
 				{
-					int num4 = 1;
-					this.Books[mbook].Rows[mset].Macros[num2] = Macro.FromArray(new string[]
-					{
-						this.lfs.Replace(text.Substring(j + 370, 8).Trim(), ""),
-						"",
-						"",
-						"",
-						"",
-						"",
-						""
-					});
+					this.Books[mbook].Rows[mset].Macros[num2] = row.Macros[num2];
 					if (PreserveMacros)
 					{
 						this.BooksPreserved[mbook].Rows[mset].Macros[num2] = this.Books[mbook].Rows[mset].Macros[num2].Clone();
 					}
-					int num5 = 0;
-					do
-					{
-						this.Books[mbook].Rows[mset].Macros[num2][num4] = this.atEncoder.Decode(this.lfs.Replace(text.Substring(j + num5, 60).Trim(), ""));
-						this.BooksPreserved[mbook].Rows[mset].Macros[num2][num4] = (string)this.Books[mbook].Rows[mset].Macros[num2][num4].Clone();
-						num4++;
-						num5 += 61;
-					}
-					while (num5 <= 360);
 					num2++;
 				}
-				return result;
+				while (num2 <= 19);
+				return true;
 			}
 		}
 
@@ -1814,34 +1720,24 @@ namespace MacroEditor
 				{
 					this.macropath = this.OpenDialog.FileName.Substring(0, this.OpenDialog.FileName.LastIndexOf("\\"));
 					this.Warning.Visible = false;
-					string path = this.macropath + "\\mcr.ttl";
-					byte[] array = File.ReadAllBytes(path);
-					string text = "";
-					int num = array.Length - 1;
-					for (int i = 0; i <= num; i++)
-					{
-						text += Conversions.ToString(Convert.ToChar(array[i]));
-					}
-					Match match = new Regex("((.{15}\\x00)+$)").Match(text);
-					text = match.Groups[1].ToString();
-					text = new Regex("\0+").Replace(text, ",");
-					string[] array2 = text.Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+					string ttlPath = this.macropath + "\\mcr.ttl";
+					List<string> bookNames = this.fileManager.ReadBookNames(ttlPath);
 					this.Contents.Items.Clear();
 					this.Books.Clear();
 					this.BooksPreserved.Clear();
 					int num2 = this.debuglimit;
 					for (int j = 0; j <= num2; j++)
 					{
-						this.Books.Add(new MacroBook(array2[j]));
-						this.BooksPreserved.Add(new MacroBook(array2[j]));
-						this.UpdateStatusBar("Extracting...", array2[j]);
-						this.Contents.Items.Add(array2[j]);
+						this.Books.Add(new MacroBook(bookNames[j]));
+						this.BooksPreserved.Add(new MacroBook(bookNames[j]));
+						this.UpdateStatusBar("Extracting...", bookNames[j]);
+						this.Contents.Items.Add(bookNames[j]);
 						this.Contents.Refresh();
 						this.StatusBar.Refresh();
 						int num3 = 0;
 						do
 						{
-							string text2 = this.macropath + "\\mcr" + MacroEditorUtils.GetMacroFileSuffix(j, num3) + ".dat";
+							string text2 = this.fileManager.GetDatFilePath(this.macropath, j, num3);
 							bool flag2 = !File.Exists(text2);
 							if (flag2)
 							{
@@ -1945,75 +1841,17 @@ namespace MacroEditor
 		// Token: 0x0600007C RID: 124 RVA: 0x00007BC0 File Offset: 0x00005DC0
 		private void MenuBook_SaveBookNames_Click(object sender, EventArgs e)
 		{
-			string path = this.macropath + "\\mcr.ttl";
-			byte[] sourceArray = File.ReadAllBytes(path);
-			StringBuilder stringBuilder = new StringBuilder();
-			int num = 0;
+			List<string> bookNames = new List<string>();
 			checked
 			{
+				int num = 0;
 				do
 				{
-					StringBuilder stringBuilder2 = stringBuilder;
-					object instance = NewLateBinding.LateGet(this.Contents.Items[num], null, "trim", new object[0], null, null, null);
-					Type type = null;
-					string memberName = "Substring";
-					object[] array = new object[2];
-					array[0] = 0;
-					int num2 = 1;
-					object instance2;
-					object[] array2;
-					bool[] array3;
-					object obj = NewLateBinding.LateGet(null, typeof(Math), "Min", array2 = new object[]
-					{
-						15,
-						NewLateBinding.LateGet(instance2 = this.Contents.Items[num], null, "length", new object[0], null, null, null)
-					}, null, null, array3 = new bool[]
-					{
-						default(bool),
-						true
-					});
-					if (array3[1])
-					{
-						NewLateBinding.LateSetComplex(instance2, null, "length", new object[]
-						{
-							array2[1]
-						}, null, null, true, true);
-					}
-					array[num2] = obj;
-					stringBuilder2.Append(MacroEditorUtils.Fill(Conversions.ToString(NewLateBinding.LateGet(instance, type, memberName, array, null, null, null)), 16));
+					bookNames.Add(Conversions.ToString(this.Contents.Items[num]));
 					num++;
 				}
 				while (num <= 19);
-				bool flag = stringBuilder.Length != 320;
-				if (flag)
-				{
-					Interaction.MsgBox("Compilation of Macro Book titles failed", MsgBoxStyle.OkOnly, null);
-				}
-				else
-				{
-					byte[] bytes = Encoding.Default.GetBytes(stringBuilder.ToString());
-					MD5CryptoServiceProvider md5CryptoServiceProvider = new MD5CryptoServiceProvider();
-					byte[] array4 = md5CryptoServiceProvider.ComputeHash(bytes);
-					StringBuilder stringBuilder3 = new StringBuilder();
-					int num3 = array4.Length - 1;
-					for (int i = 0; i <= num3; i++)
-					{
-						stringBuilder3.Append(Strings.Chr((int)array4[i]));
-					}
-					bool flag2 = stringBuilder.Length != 320;
-					if (flag2)
-					{
-						Interaction.MsgBox("Compilation of Macro Names file failed.", MsgBoxStyle.OkOnly, null);
-					}
-					else
-					{
-						byte[] array5 = new byte[8 + array4.Length + bytes.Length - 1 + 1];
-						Array.Copy(sourceArray, 0, array5, 0, 8);
-						Array.Copy(array4, 0, array5, 8, 16);
-						Array.Copy(bytes, 0, array5, 24, bytes.Length);
-						File.WriteAllBytes(path, array5);
-					}
-				}
+				this.fileManager.WriteBookNames(this.macropath, bookNames);
 			}
 		}
 
@@ -4399,6 +4237,9 @@ namespace MacroEditor
 
 		// Token: 0x04000045 RID: 69
 		private AutoTranslateEncoder atEncoder;
+
+		// Field: MacroFileManager for file I/O operations
+		private MacroFileManager fileManager;
 
 		// Token: 0x04000042 RID: 66
 		public Assessment Evaluation;
