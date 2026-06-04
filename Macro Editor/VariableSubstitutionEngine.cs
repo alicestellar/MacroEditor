@@ -556,5 +556,216 @@ namespace MacroEditor
             lines.Add("}");
             return string.Join("\r\n", lines);
         }
+
+        // ===== EXPORT SUPPORT =====
+
+        /// <summary>
+        /// Scans a destination folder's Book 40 .dat files and returns the variable map.
+        /// Returns empty dictionary if Book 40 doesn't exist or has no variables.
+        /// </summary>
+        public Dictionary<string, List<string>> LoadDestinationVariables(string destPath, MacroFileManager fileManager)
+        {
+            var destVars = new Dictionary<string, List<string>>();
+
+            // Build a temporary Book 40 by reading its .dat files
+            MacroBook destBook40 = new MacroBook("Variables");
+            for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+            {
+                string datPath = destPath + "\\mcr" + MacroEditorUtils.GetMacroFileSuffix(39, rowIdx) + ".dat";
+                MacroRow row = fileManager.ReadMacroRow(datPath);
+                if (row != null)
+                    destBook40.Rows[rowIdx] = row;
+            }
+
+            // Scan using same algorithm
+            for (int rowIndex = 9; rowIndex >= 0; rowIndex--)
+            {
+                MacroRow row = destBook40.Rows[rowIndex];
+                bool pageHasMarker = false;
+
+                for (int macroIndex = 0; macroIndex < 20; macroIndex++)
+                {
+                    Macro macro = row.Macros[macroIndex];
+                    if (string.Equals(macro.Lines[5].Trim(), MARKER, StringComparison.OrdinalIgnoreCase))
+                    {
+                        pageHasMarker = true;
+                        string name = macro.Title.Trim();
+                        if (string.IsNullOrEmpty(name)) continue;
+
+                        var values = new List<string>();
+                        for (int lineIdx = 0; lineIdx <= 4; lineIdx++)
+                        {
+                            string val = macro.Lines[lineIdx].Trim();
+                            values.Add(val); // Include even if empty for export
+                        }
+
+                        if (!destVars.ContainsKey(name))
+                            destVars[name] = values;
+                    }
+                }
+
+                if (!pageHasMarker)
+                    break;
+            }
+
+            return destVars;
+        }
+
+        /// <summary>
+        /// Returns variable names that exist in source but not in destination.
+        /// </summary>
+        public List<string> GetMissingVariables(Dictionary<string, List<string>> destinationVars)
+        {
+            var missing = new List<string>();
+            foreach (var name in _variables.Keys)
+            {
+                if (!destinationVars.ContainsKey(name))
+                    missing.Add(name);
+            }
+            return missing;
+        }
+
+        /// <summary>
+        /// Creates placeholder variable macros for missing variables and adds them to
+        /// a destination Book 40. Returns the modified book.
+        /// </summary>
+        public MacroBook AddMissingVariablesToBook40(MacroBook destBook40, List<string> missingVars)
+        {
+            if (missingVars == null || missingVars.Count == 0)
+                return destBook40;
+
+            if (destBook40 == null)
+                destBook40 = new MacroBook("Variables");
+
+            int added = 0;
+            // Find empty slots starting from Page 10, macro 0
+            for (int rowIdx = 9; rowIdx >= 0 && added < missingVars.Count; rowIdx--)
+            {
+                for (int macroIdx = 0; macroIdx < 20 && added < missingVars.Count; macroIdx++)
+                {
+                    Macro macro = destBook40.Rows[rowIdx].Macros[macroIdx];
+                    // Skip if this slot already has a VARIABLE marker
+                    if (string.Equals(macro.Lines[5].Trim(), MARKER, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    // Skip if slot is non-empty (has content)
+                    if (!macro.IsEmpty())
+                        continue;
+
+                    // Place the missing variable here
+                    macro.Title = missingVars[added];
+                    macro.Lines[0] = ""; // Empty - user must fill in
+                    macro.Lines[1] = "";
+                    macro.Lines[2] = "";
+                    macro.Lines[3] = "";
+                    macro.Lines[4] = "";
+                    macro.Lines[5] = MARKER;
+                    added++;
+                }
+            }
+
+            return destBook40;
+        }
+
+        /// <summary>
+        /// Resolves a single string for export:
+        /// {name} → destination value, {!name} → source value.
+        /// </summary>
+        public string ResolveForExport(string text, Dictionary<string, List<string>> destinationVars)
+        {
+            if (string.IsNullOrEmpty(text) || !HasVariables)
+                return text;
+
+            // First resolve locked placeholders {!name} → source value
+            foreach (var kvp in _variables)
+            {
+                string name = kvp.Key;
+                List<string> sourceValues = kvp.Value;
+
+                // Primary locked: {!name} → source value
+                string lockedPlaceholder = "{!" + name + "}";
+                if (text.Contains(lockedPlaceholder))
+                {
+                    text = text.Replace(lockedPlaceholder, sourceValues[0]);
+                }
+
+                // Alt locked: {!name2}, {!name3}, etc. → source alt values
+                for (int i = 1; i < sourceValues.Count; i++)
+                {
+                    string lockedAlt = "{!" + name + (i + 1) + "}";
+                    if (text.Contains(lockedAlt))
+                    {
+                        text = text.Replace(lockedAlt, sourceValues[i]);
+                    }
+                }
+            }
+
+            // Then resolve normal placeholders {name} → destination value
+            foreach (var kvp in _variables)
+            {
+                string name = kvp.Key;
+                List<string> sourceValues = kvp.Value;
+
+                List<string> destValues = null;
+                if (destinationVars.ContainsKey(name))
+                    destValues = destinationVars[name];
+
+                // Primary: {name} → dest value (or source value if no dest value)
+                string placeholder = "{" + name + "}";
+                if (text.Contains(placeholder))
+                {
+                    string destVal = (destValues != null && destValues.Count > 0 && !string.IsNullOrEmpty(destValues[0]))
+                        ? destValues[0] : sourceValues[0];
+                    text = text.Replace(placeholder, destVal);
+                }
+
+                // Alt values: {name2} → dest value 2, etc.
+                for (int i = 1; i < sourceValues.Count; i++)
+                {
+                    string altPlaceholder = "{" + name + (i + 1) + "}";
+                    if (text.Contains(altPlaceholder))
+                    {
+                        string destVal = (destValues != null && destValues.Count > i && !string.IsNullOrEmpty(destValues[i]))
+                            ? destValues[i] : sourceValues[i];
+                        text = text.Replace(altPlaceholder, destVal);
+                    }
+                }
+            }
+
+            return text;
+        }
+
+        /// <summary>
+        /// Creates a deep clone of books 1-39 with export substitution applied.
+        /// {name} → destination value, {!name} → source value.
+        /// </summary>
+        public List<MacroBook> ResolveAllForExport(List<MacroBook> books, Dictionary<string, List<string>> destinationVars)
+        {
+            var resolved = new List<MacroBook>();
+
+            int limit = Math.Min(books.Count - 1, 38);
+            for (int bookIdx = 0; bookIdx <= limit; bookIdx++)
+            {
+                MacroBook clone = books[bookIdx].Clone();
+
+                if (HasVariables)
+                {
+                    foreach (MacroRow row in clone.Rows)
+                    {
+                        foreach (Macro macro in row.Macros)
+                        {
+                            macro.Title = ResolveForExport(macro.Title, destinationVars);
+                            for (int lineIdx = 0; lineIdx < macro.Lines.Count; lineIdx++)
+                            {
+                                macro.Lines[lineIdx] = ResolveForExport(macro.Lines[lineIdx], destinationVars);
+                            }
+                        }
+                    }
+                }
+
+                resolved.Add(clone);
+            }
+
+            return resolved;
+        }
     }
 }

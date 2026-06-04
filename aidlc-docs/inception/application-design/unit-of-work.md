@@ -86,18 +86,18 @@
 - **Exit Criteria**: Undo/Redo works for text edits and bulk operations, buttons reflect state
 
 ### Unit 10: Macro Map Visual Enhancements
-- **Purpose**: Improve macro map readability with color coding, page navigation, and dividers
+- **Purpose**: Improve macro map readability with color coding, page navigation, and a header toolbar
 - **Scope**:
-  - Add a fixed header/toolbar area at the top of the macro map window containing CTRL/ALT labels and action buttons (shared with Unit 11's Edit/Save buttons)
-  - Add divider lines between each "page" (row pair: Ctrl row + Alt row)
+  - Add a fixed header/toolbar area at the top of the macro map window containing CTRL/ALT labels and action buttons (shared with Unit 11's Edit/Save buttons) — this increases the window height slightly
   - "CTRL" and "ALT" labels pinned in the header — always visible regardless of scroll position (CTRL = faded blue, ALT = faded red)
   - Color-code macro labels: Ctrl macros = faded blue background, Alt macros = faded red background (instead of grey)
   - Add page navigation buttons at top and bottom of scrollbar (move to next/prev page, center window)
   - Implement paged scrolling: scroll position tracks continuously (same mouse wheel delta units) but the view snaps to show one page at a time, only changing when scroll value crosses a page boundary
-- **Deliverables**: Modified MacroMapForm with color coding, dividers, page labels, and paged scroll behavior
-- **Testing Gate**: Manual run — verify color coding, dividers visible, page buttons navigate correctly, scroll snaps between pages
+  - Make the macro map window taller to accommodate the header toolbar (CTRL/ALT icons + Edit/Save button row)
+- **Deliverables**: Modified MacroMapForm with color coding, page labels, paged scroll behavior, and taller window
+- **Testing Gate**: Manual run — verify color coding, page buttons navigate correctly, scroll snaps between pages, header visible at all scroll positions
 - **Entry Criteria**: Unit 2 complete (needs clean data model)
-- **Exit Criteria**: Macro map shows colored Ctrl/Alt rows with dividers, paged scrolling works
+- **Exit Criteria**: Macro map shows colored Ctrl/Alt rows, paged scrolling works, window height accommodates toolbar
 
 ### Unit 11: Editable Macro Map
 - **Purpose**: Add a second, editable macro map that allows side-by-side editing of macros within a book

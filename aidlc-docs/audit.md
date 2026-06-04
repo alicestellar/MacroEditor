@@ -343,3 +343,19 @@ Both features will be implemented.
 **Context**: CONSTRUCTION - Unit 13, clarification on scope. Four levels of broadcast: Page (full 20 macros), Ctrl/Alt row (10 macros), single macro, single text line (including title).
 
 ---
+
+## Unit 6 - Export with Variable Substitution Start
+**Timestamp**: 2026-06-04T02:00:00Z
+**User Input**: "Alright. Let's do the export first."
+**AI Response**: Beginning Unit 6 (Export with Variable Substitution). This involves new business logic (reading destination Book 40, resolving with destination variables, handling {!name} locks). Starting with functional design.
+**Context**: CONSTRUCTION - Unit 6 (Export). Starting with Functional Design stage.
+
+---
+
+## Unit 6 - Functional Design Approved
+**Timestamp**: 2026-06-04T02:05:00Z
+**User Input**: "Alright, awesome. Proceed."
+**AI Response**: Functional design approved. Beginning code generation for Unit 6 (Export + Restore from Backup).
+**Context**: CONSTRUCTION - Unit 6, Code Generation.
+
+---

@@ -603,6 +603,21 @@ namespace MacroEditor
 
 				this.MenuText.Items.Add(new ToolStripMenuItem("Apply Line to All Books", null, this.BroadcastLine_Click));
 
+				// Add Export and Restore to File menu
+				var exportSeparator = new ToolStripSeparator();
+				var exportItem = new ToolStripMenuItem("Export to Folder...");
+				exportItem.Click += this.File_Export_Click;
+				var exportAllItem = new ToolStripMenuItem("Export to All Characters");
+				exportAllItem.Click += this.File_ExportAll_Click;
+				var restoreItem = new ToolStripMenuItem("Restore from Backup...");
+				restoreItem.Click += this.File_RestoreBackup_Click;
+				// Insert before Exit (last item in FileMenu)
+				int exitIndex = this.FileMenu.DropDownItems.IndexOf(this.File_Exit);
+				this.FileMenu.DropDownItems.Insert(exitIndex, exportSeparator);
+				this.FileMenu.DropDownItems.Insert(exitIndex + 1, exportItem);
+				this.FileMenu.DropDownItems.Insert(exitIndex + 2, exportAllItem);
+				this.FileMenu.DropDownItems.Insert(exitIndex + 3, restoreItem);
+
 				this.rs.FindAllControls(this);
 				ListBox contents = this.Contents;
 				this.Warning.Top = contents.Top;
@@ -1846,6 +1861,348 @@ namespace MacroEditor
 			}
 			this.SomethingEdited = true;
 			this.UpdateStatusBar("Broadcast", lineLabel + " applied to all books.");
+		}
+
+		// ===== EXPORT AND RESTORE =====
+
+		private void File_Export_Click(object sender, EventArgs e)
+		{
+			// 1. Pick destination folder via OpenFileDialog (same style as Open)
+			this.OpenDialog.InitialDirectory = this.macropath;
+			this.OpenDialog.Filter = "Macro Title Files|mcr.ttl";
+			this.OpenDialog.FileName = "mcr.ttl";
+			this.OpenDialog.Multiselect = false;
+			this.OpenDialog.Title = "Select Destination Character's mcr.ttl";
+			if (this.OpenDialog.ShowDialog() == DialogResult.Cancel)
+				return;
+
+			string destPath = this.OpenDialog.FileName.Substring(0, this.OpenDialog.FileName.LastIndexOf("\\"));
+
+			// Reset dialog title for normal use
+			this.OpenDialog.Title = "Find Macro Files";
+
+			// 2. Read destination Book 40 variables (before any backup rename)
+			var destVars = this.variableEngine.LoadDestinationVariables(destPath, this.fileManager);
+
+			// 3. Check for missing variables and prepare destination Book 40
+			MacroBook destBook40 = null;
+			List<string> missingVars = this.variableEngine.GetMissingVariables(destVars);
+			if (missingVars.Count > 0)
+			{
+				// Build destination Book 40 from existing files
+				destBook40 = new MacroBook("Variables");
+				for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+				{
+					string datPath = destPath + "\\mcr" + MacroEditorUtils.GetMacroFileSuffix(39, rowIdx) + ".dat";
+					MacroRow row = this.fileManager.ReadMacroRow(datPath);
+					if (row != null)
+						destBook40.Rows[rowIdx] = row;
+				}
+				destBook40 = this.variableEngine.AddMissingVariablesToBook40(destBook40, missingVars);
+
+				// Warn user about missing variables
+				string missingList = string.Join(", ", missingVars);
+				var missingResult = MessageBox.Show(
+					"The destination is missing these variables:\n" + missingList + "\n\n" +
+					"They will be added as placeholders with EMPTY values. This means any macros " +
+					"using these variables will have blank text where the variable should be.\n\n" +
+					"It is recommended to set up the destination's variables in Book 40 before exporting.\n\n" +
+					"Proceed anyway?",
+					"Missing Variables", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+				if (missingResult == DialogResult.Cancel)
+					return;
+			}
+
+			// 4. Show overwrite warning
+			var result = MessageBox.Show(
+				"Export will overwrite macros in:\n" + destPath + "\n\n" +
+				"This will replace ALL macro files in that folder with the current set.\n\n" +
+				"Click YES to export directly.\nClick NO to backup existing files first, then export.\nClick CANCEL to abort.",
+				"Export Macros", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+
+			if (result == DialogResult.Cancel)
+				return;
+
+			bool doBackup = (result == DialogResult.No);
+
+			// 5. Backup if requested
+			if (doBackup)
+			{
+				BackupMacroFiles(destPath);
+			}
+
+			// 6. Resolve and export
+			List<MacroBook> exportBooks;
+			if (this.variableEngine.HasVariables)
+			{
+				exportBooks = this.variableEngine.ResolveAllForExport(this.Books, destVars);
+			}
+			else
+			{
+				// No variables — straight clone
+				exportBooks = new List<MacroBook>();
+				for (int i = 0; i <= Math.Min(this.Books.Count - 2, 38); i++)
+					exportBooks.Add(this.Books[i].Clone());
+			}
+
+			// 7. Write exported .dat files for Books 1-39
+			for (int bookIdx = 0; bookIdx < exportBooks.Count; bookIdx++)
+			{
+				for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+				{
+					this.fileManager.WriteRow(destPath, bookIdx, rowIdx,
+						exportBooks[bookIdx].Rows[rowIdx], exportBooks[bookIdx].Rows[rowIdx], 19);
+				}
+			}
+
+			// 8. Write Book 40
+			// If destination was missing variables, write the updated Book 40 with placeholders
+			// Otherwise, do NOT overwrite destination's Book 40 (it has its own variable values)
+			if (destBook40 != null)
+			{
+				for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+				{
+					this.fileManager.WriteRow(destPath, 39, rowIdx,
+						destBook40.Rows[rowIdx], destBook40.Rows[rowIdx], 19);
+				}
+			}
+			// If destBook40 is null, destination already had all variables — leave its Book 40 alone
+
+			// 9. Write book names
+			List<string> bookNames = new List<string>();
+			for (int i = 0; i < this.Contents.Items.Count; i++)
+				bookNames.Add(this.Contents.Items[i].ToString());
+			this.fileManager.WriteBookNames(destPath, bookNames);
+
+			// 10. Success
+			this.UpdateStatusBar("Export complete", destPath);
+			MessageBox.Show("Export complete!\n\nMacros exported to:\n" + destPath, "Export", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+
+		private void BackupMacroFiles(string folderPath)
+		{
+			string[] macroFiles = Directory.GetFiles(folderPath, "mcr*");
+			foreach (string file in macroFiles)
+			{
+				// Don't backup .backup files themselves
+				if (file.EndsWith(".backup")) continue;
+				string backupPath = file + ".backup";
+				// Overwrite old backup if exists
+				if (File.Exists(backupPath))
+					File.Delete(backupPath);
+				File.Move(file, backupPath);
+			}
+			// Also backup lock file if it exists
+			string lockFile = Path.Combine(folderPath, VariableSubstitutionEngine.LOCK_FILENAME);
+			if (File.Exists(lockFile))
+			{
+				string lockBackup = lockFile + ".backup";
+				if (File.Exists(lockBackup))
+					File.Delete(lockBackup);
+				File.Move(lockFile, lockBackup);
+			}
+		}
+
+		private void File_RestoreBackup_Click(object sender, EventArgs e)
+		{
+			// Default to currently loaded folder
+			string folderPath = this.macropath;
+
+			// Confirm with option to pick a different folder
+			var result = MessageBox.Show(
+				"Restore backup in:\n" + folderPath + "\n\n" +
+				"This will DELETE current macro files and RESTORE from .backup files.\n" +
+				"This cannot be undone.\n\n" +
+				"Click YES to restore this folder.\nClick NO to choose a different folder.\nClick CANCEL to abort.",
+				"Restore from Backup", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+
+			if (result == DialogResult.Cancel)
+				return;
+
+			if (result == DialogResult.No)
+			{
+				// Pick a different folder via OpenFileDialog (same style as Open)
+				this.OpenDialog.InitialDirectory = this.macropath;
+				this.OpenDialog.Filter = "Macro Title Files|mcr.ttl;*.backup";
+				this.OpenDialog.FileName = "mcr.ttl";
+				this.OpenDialog.Multiselect = false;
+				this.OpenDialog.Title = "Select Folder to Restore (pick any macro file)";
+				if (this.OpenDialog.ShowDialog() == DialogResult.Cancel)
+					return;
+				folderPath = this.OpenDialog.FileName.Substring(0, this.OpenDialog.FileName.LastIndexOf("\\"));
+				this.OpenDialog.Title = "Find Macro Files";
+				this.OpenDialog.Filter = "Macro Title Files|mcr.ttl";
+			}
+
+			// Check if backup files exist
+			string[] backupFiles = Directory.GetFiles(folderPath, "*.backup");
+			if (backupFiles.Length == 0)
+			{
+				MessageBox.Show("No backup files found in this folder.", "Restore from Backup", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			// Delete current files and restore backups
+			foreach (string backupFile in backupFiles)
+			{
+				string originalPath = backupFile.Substring(0, backupFile.Length - ".backup".Length);
+				if (File.Exists(originalPath))
+					File.Delete(originalPath);
+				File.Move(backupFile, originalPath);
+			}
+
+			// If restored folder is the currently loaded folder, offer to reload
+			if (string.Equals(folderPath, this.macropath, StringComparison.OrdinalIgnoreCase))
+			{
+				var reloadResult = MessageBox.Show(
+					"Backup restored. This is the currently loaded macro set.\n\nReload now?",
+					"Restore Complete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+				if (reloadResult == DialogResult.Yes)
+				{
+					this.File_Open_Click(sender, e);
+				}
+			}
+			else
+			{
+				MessageBox.Show("Backup restored successfully!", "Restore Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
+
+			this.UpdateStatusBar("Restore complete", folderPath);
+		}
+
+		private void File_ExportAll_Click(object sender, EventArgs e)
+		{
+			// Determine the USER folder (parent of the currently loaded macro folder)
+			string userFolder = Directory.GetParent(this.macropath).FullName;
+			string currentFolder = new DirectoryInfo(this.macropath).Name;
+
+			// Find all sibling character folders (excluding the current one)
+			string[] allDirs = Directory.GetDirectories(userFolder);
+			var targetDirs = new List<string>();
+			foreach (string dir in allDirs)
+			{
+				string dirName = new DirectoryInfo(dir).Name;
+				if (!string.Equals(dirName, currentFolder, StringComparison.OrdinalIgnoreCase))
+				{
+					// Only include folders that have macro files (mcr.ttl exists)
+					if (File.Exists(Path.Combine(dir, "mcr.ttl")))
+						targetDirs.Add(dir);
+				}
+			}
+
+			if (targetDirs.Count == 0)
+			{
+				MessageBox.Show("No other character folders found in:\n" + userFolder,
+					"Export to All", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			// WARNING 1 — emphatic
+			var warn1 = MessageBox.Show(
+				"⚠️ EXPORT TO ALL CHARACTERS ⚠️\n\n" +
+				"This will OVERWRITE the macros for EVERY OTHER CHARACTER in:\n" + userFolder + "\n\n" +
+				"The following " + targetDirs.Count + " character folder(s) will be affected:\n" +
+				string.Join("\n", targetDirs.ConvertAll(d => "  • " + new DirectoryInfo(d).Name)) + "\n\n" +
+				"This is a DESTRUCTIVE operation. All existing macros in those folders will be REPLACED.\n\n" +
+				"Are you absolutely sure you want to proceed?",
+				"⚠️ Export to ALL Characters ⚠️", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+
+			if (warn1 != DialogResult.OK)
+				return;
+
+			// WARNING 2 — final confirmation
+			var warn2 = MessageBox.Show(
+				"FINAL CONFIRMATION\n\n" +
+				"You are about to overwrite macros for " + targetDirs.Count + " character(s).\n\n" +
+				"This CANNOT be undone without backups.\n\n" +
+				"Click YES to export and backup existing files.\n" +
+				"Click NO to export WITHOUT backup (dangerous).\n" +
+				"Click CANCEL to abort.",
+				"⚠️ LAST CHANCE — Export to All ⚠️", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Stop);
+
+			if (warn2 == DialogResult.Cancel)
+				return;
+
+			bool doBackup = (warn2 == DialogResult.Yes);
+
+			// Process each target directory
+			int successCount = 0;
+			int skipCount = 0;
+			foreach (string destPath in targetDirs)
+			{
+				// Read destination variables
+				var destVars = this.variableEngine.LoadDestinationVariables(destPath, this.fileManager);
+
+				// Check for missing variables (add placeholders silently for bulk export)
+				MacroBook destBook40 = null;
+				List<string> missingVars = this.variableEngine.GetMissingVariables(destVars);
+				if (missingVars.Count > 0)
+				{
+					destBook40 = new MacroBook("Variables");
+					for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+					{
+						string datPath = destPath + "\\mcr" + MacroEditorUtils.GetMacroFileSuffix(39, rowIdx) + ".dat";
+						MacroRow row = this.fileManager.ReadMacroRow(datPath);
+						if (row != null)
+							destBook40.Rows[rowIdx] = row;
+					}
+					destBook40 = this.variableEngine.AddMissingVariablesToBook40(destBook40, missingVars);
+				}
+
+				// Backup if requested
+				if (doBackup)
+				{
+					BackupMacroFiles(destPath);
+				}
+
+				// Resolve and export
+				List<MacroBook> exportBooks;
+				if (this.variableEngine.HasVariables)
+				{
+					exportBooks = this.variableEngine.ResolveAllForExport(this.Books, destVars);
+				}
+				else
+				{
+					exportBooks = new List<MacroBook>();
+					for (int i = 0; i <= Math.Min(this.Books.Count - 2, 38); i++)
+						exportBooks.Add(this.Books[i].Clone());
+				}
+
+				// Write Books 1-39
+				for (int bookIdx = 0; bookIdx < exportBooks.Count; bookIdx++)
+				{
+					for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+					{
+						this.fileManager.WriteRow(destPath, bookIdx, rowIdx,
+							exportBooks[bookIdx].Rows[rowIdx], exportBooks[bookIdx].Rows[rowIdx], 19);
+					}
+				}
+
+				// Write Book 40 only if missing variables were added
+				if (destBook40 != null)
+				{
+					for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+					{
+						this.fileManager.WriteRow(destPath, 39, rowIdx,
+							destBook40.Rows[rowIdx], destBook40.Rows[rowIdx], 19);
+					}
+				}
+
+				// Write book names
+				List<string> bookNames = new List<string>();
+				for (int i = 0; i < this.Contents.Items.Count; i++)
+					bookNames.Add(this.Contents.Items[i].ToString());
+				this.fileManager.WriteBookNames(destPath, bookNames);
+
+				successCount++;
+				this.UpdateStatusBar("Exporting...", new DirectoryInfo(destPath).Name + " (" + successCount + "/" + targetDirs.Count + ")");
+				this.StatusBar.Refresh();
+			}
+
+			this.UpdateStatusBar("Export to All complete", successCount + " characters updated");
+			MessageBox.Show("Export to All complete!\n\n" + successCount + " character(s) updated." +
+				(doBackup ? "\n\nBackups were created in each folder." : ""),
+				"Export to All", MessageBoxButtons.OK, MessageBoxIcon.Information);
 		}
 
 		// Token: 0x0600007C RID: 124 RVA: 0x00007BC0 File Offset: 0x00005DC0
