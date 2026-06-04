@@ -324,3 +324,22 @@ Updating functional design.
 **Context**: Lock mechanism finalized. Updating Unit 5 functional design and noting Unit 6 export impact.
 
 ---
+
+## Unit 13 - Broadcast Edit Start
+**Timestamp**: 2026-06-04T01:45:00Z
+**User Input**: "Let's implement unit 13. It is an easy feature to test, and is an important quality of life feature."
+**AI Response**: Beginning Unit 13 implementation. Simple feature: add context menu items for "Apply to All Books" at page, macro, and line levels. Skipping formal functional design since this is straightforward UI + clone logic.
+**Context**: CONSTRUCTION - Unit 13 (Broadcast Edit). Direct to code generation since logic is simple.
+
+---
+
+## Unit 13 - Clarification on "Line"
+**Timestamp**: 2026-06-04T01:46:00Z
+**User Input**: "Please be aware of the following: When I said 'line' I meant like a row of CTRL macros from the same page, or a row of ALT macros from the same page, but single lines in a macro should ALSO have this feature, including the title."
+**AI Response**: Understood. "Line" means TWO things for broadcast:
+1. A Ctrl row (macros 0-9) or Alt row (macros 10-19) from a page — broadcast that half-row to all books
+2. A single text line within a macro (Title, or Lines 1-6) — broadcast that specific text to the same macro position/line in all books
+Both features will be implemented.
+**Context**: CONSTRUCTION - Unit 13, clarification on scope. Four levels of broadcast: Page (full 20 macros), Ctrl/Alt row (10 macros), single macro, single text line (including title).
+
+---

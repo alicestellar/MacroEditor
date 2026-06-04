@@ -115,7 +115,19 @@
 - **Entry Criteria**: Unit 2 complete (needs clean data model)
 - **Exit Criteria**: Round-trip export→edit→import works, format is human-readable
 
-### Unit 13: Compiler Warning Cleanup
+### Unit 13: Broadcast Edit (Copy to All Books)
+- **Purpose**: Allow the user to copy a page, a single macro, or a single line to the same position in all other books (1-39)
+- **Scope**: Add "Apply to All Books" (or similar wording) to existing right-click context menus for pages/rows, macros, and lines. Skips Book 40. On click, show a confirmation dialog that explains the operation in detail (e.g., "This will copy Ctrl 3 from Book 'Makaria' Page 2 to the same position in all other books. This cannot be undone. Continue?") with Confirm and Cancel buttons.
+- **UI Integration**:
+  - **Row/Page context menu** (right-click on a page/row button): "Apply Page to All Books" — copies all 20 macros from the current page to the same page in all other books
+  - **Macro context menu** (right-click on a Ctrl/Alt button): "Apply Macro to All Books" — copies the selected macro to the same slot in all other books
+  - **Line context menu** (right-click in a text box, or added to existing text context menu): "Apply Line to All Books" — copies the current line's text to the same book/page/macro/line position in all other books
+- **Deliverables**: Context menu items added to MenuRow, MenuMacro, and MenuText. Confirmation MessageBox with descriptive text. Broadcast logic that iterates Books 0-38 (skipping the source book and Book 39).
+- **Testing Gate**: Manual run — right-click a macro, select "Apply to All Books", confirm, verify all books have the same macro at that position. Verify Book 40 is untouched. Verify Cancel aborts.
+- **Entry Criteria**: Unit 2 complete (needs clean data model)
+- **Exit Criteria**: Page/macro/line broadcast works from context menus, Book 40 excluded, confirmation shown before overwrite, Cancel aborts operation
+
+### Unit 14: Compiler Warning Cleanup
 - **Purpose**: Eliminate all compiler warnings for a clean build output
 - **Scope**: Fix unused variable warnings (CS0168) in Resizer.cs, MacroFileManager.cs, MainForm.cs. Fix unassigned field warnings (CS0649) in Designer files. Address any other warnings introduced by later units.
 - **Deliverables**: Zero-warning build

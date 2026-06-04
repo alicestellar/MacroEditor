@@ -50,7 +50,8 @@ flowchart TD
 | Unit 10: Macro Map Visuals     | Unit 2             | Unit 11    | Pending  |
 | Unit 11: Editable Macro Map    | Unit 10            | (none)     | Pending  |
 | Unit 12: Text Import/Export    | Unit 2             | (none)     | Pending  |
-| Unit 13: Warning Cleanup       | All other units    | (none)     | Pending  |
+| Unit 13: Broadcast Edit        | Unit 2             | (none)     | Pending  |
+| Unit 14: Warning Cleanup       | All other units    | (none)     | Pending  |
 
 ## Execution Order
 

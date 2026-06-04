@@ -55,4 +55,5 @@
 - [ ] Unit 10: Macro Map Visual Enhancements
 - [ ] Unit 11: Editable Macro Map
 - [ ] Unit 12: Text File Import/Export
-- [ ] Unit 13: Compiler Warning Cleanup (low priority — after all features)
+- [ ] Unit 13: Broadcast Edit (Copy to All Books)
+- [ ] Unit 14: Compiler Warning Cleanup (low priority — after all features)

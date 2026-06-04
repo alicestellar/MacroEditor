@@ -584,6 +584,25 @@ namespace MacroEditor
 					Log("AT phrase loading failed: " + ex.Message);
 				}
 				this.atEncoder.PhraseSelected += (phrase) => { this.Lines[this.CurrentLine].SelectedText = phrase; };
+
+				// Add "Apply to All Books" items to context menus
+				this.MenuRow.Items.Add(new ToolStripSeparator());
+				var menuRowBroadcast = new ToolStripMenuItem("Apply Page to All Books");
+				menuRowBroadcast.Click += this.BroadcastPage_Click;
+				this.MenuRow.Items.Add(menuRowBroadcast);
+
+				this.MenuMacro.Items.Add(new ToolStripSeparator());
+				var menuMacroBroadcast = new ToolStripMenuItem("Apply Macro to All Books");
+				menuMacroBroadcast.Click += this.BroadcastMacro_Click;
+				this.MenuMacro.Items.Add(menuMacroBroadcast);
+
+				this.MenuHandler.Items.Add(new ToolStripSeparator());
+				var menuHandlerBroadcast = new ToolStripMenuItem("Apply Ctrl/Alt Row to All Books");
+				menuHandlerBroadcast.Click += this.BroadcastCtrlAltRow_Click;
+				this.MenuHandler.Items.Add(menuHandlerBroadcast);
+
+				this.MenuText.Items.Add(new ToolStripMenuItem("Apply Line to All Books", null, this.BroadcastLine_Click));
+
 				this.rs.FindAllControls(this);
 				ListBox contents = this.Contents;
 				this.Warning.Top = contents.Top;
@@ -1735,6 +1754,98 @@ namespace MacroEditor
 		{
 			Help help = new Help();
 			help.ShowDialog();
+		}
+
+		// ===== BROADCAST EDIT (Apply to All Books) =====
+
+		private void BroadcastPage_Click(object sender, EventArgs e)
+		{
+			string msg = string.Format(
+				"This will copy ALL 20 macros from Page {0} of \"{1}\" to the same page in every other book (Books 1-39).\n\n" +
+				"This will OVERWRITE the existing macros at that page in all other books.\n\nContinue?",
+				this.xRow + 1, this.Contents.Items[this.xBook]);
+			if (MessageBox.Show(msg, "Apply Page to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
+			{
+				if (bookIdx == this.xBook) continue;
+				for (int macroIdx = 0; macroIdx < 20; macroIdx++)
+				{
+					this.Books[bookIdx].Rows[this.xRow].Macros[macroIdx] = this.Books[this.xBook].Rows[this.xRow].Macros[macroIdx].Clone();
+				}
+			}
+			this.SomethingEdited = true;
+			this.UpdateStatusBar("Broadcast", "Page " + (this.xRow + 1) + " applied to all books.");
+		}
+
+		private void BroadcastMacro_Click(object sender, EventArgs e)
+		{
+			string macroLabel = (this.xMacro < 10) ? "Ctrl " + (this.xMacro + 1) : "Alt " + (this.xMacro - 9);
+			string msg = string.Format(
+				"This will copy macro \"{0}\" from Page {1} of \"{2}\" to the same slot in every other book (Books 1-39).\n\n" +
+				"This will OVERWRITE the macro at that position in all other books.\n\nContinue?",
+				macroLabel, this.xRow + 1, this.Contents.Items[this.xBook]);
+			if (MessageBox.Show(msg, "Apply Macro to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
+			{
+				if (bookIdx == this.xBook) continue;
+				this.Books[bookIdx].Rows[this.xRow].Macros[this.xMacro] = this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro].Clone();
+			}
+			this.SomethingEdited = true;
+			this.UpdateStatusBar("Broadcast", macroLabel + " applied to all books.");
+		}
+
+		private void BroadcastCtrlAltRow_Click(object sender, EventArgs e)
+		{
+			int start = this.handlerStart;
+			int end = this.handlerEnd;
+			// If FlipHandler was used (start==0, end==0), don't broadcast
+			if (start == end) return;
+
+			string rowLabel = (start == 0) ? "Ctrl row (macros 1-10)" : "Alt row (macros 1-10)";
+			string msg = string.Format(
+				"This will copy the {0} from Page {1} of \"{2}\" to the same positions in every other book (Books 1-39).\n\n" +
+				"This will OVERWRITE those macros in all other books.\n\nContinue?",
+				rowLabel, this.xRow + 1, this.Contents.Items[this.xBook]);
+			if (MessageBox.Show(msg, "Apply Ctrl/Alt Row to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
+			{
+				if (bookIdx == this.xBook) continue;
+				for (int macroIdx = start; macroIdx <= end; macroIdx++)
+				{
+					this.Books[bookIdx].Rows[this.xRow].Macros[macroIdx] = this.Books[this.xBook].Rows[this.xRow].Macros[macroIdx].Clone();
+				}
+			}
+			this.SomethingEdited = true;
+			this.UpdateStatusBar("Broadcast", rowLabel + " applied to all books.");
+		}
+
+		private void BroadcastLine_Click(object sender, EventArgs e)
+		{
+			if (this.CurrentLine < 0) return;
+			string lineLabel = (this.CurrentLine == 0) ? "Title" : "Line " + this.CurrentLine;
+			string currentText = this.Lines[this.CurrentLine].Text;
+			string msg = string.Format(
+				"This will copy {0} (\"{1}\") from macro {2}, Page {3} of \"{4}\" to the same position in every other book (Books 1-39).\n\n" +
+				"This will OVERWRITE that line in all other books.\n\nContinue?",
+				lineLabel,
+				currentText.Length > 20 ? currentText.Substring(0, 20) + "..." : currentText,
+				this.xMacro + 1, this.xRow + 1, this.Contents.Items[this.xBook]);
+			if (MessageBox.Show(msg, "Apply Line to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
+			{
+				if (bookIdx == this.xBook) continue;
+				this.Books[bookIdx].Rows[this.xRow].Macros[this.xMacro][this.CurrentLine] = currentText;
+			}
+			this.SomethingEdited = true;
+			this.UpdateStatusBar("Broadcast", lineLabel + " applied to all books.");
 		}
 
 		// Token: 0x0600007C RID: 124 RVA: 0x00007BC0 File Offset: 0x00005DC0
