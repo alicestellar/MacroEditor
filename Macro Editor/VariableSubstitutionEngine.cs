@@ -1,15 +1,35 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace MacroEditor
 {
+    /// <summary>
+    /// Represents a single variable lock entry (a placeholder instance that should
+    /// not be replaced with destination values during export).
+    /// </summary>
+    public class VariableLock
+    {
+        public int Book { get; set; }
+        public int Page { get; set; }
+        public int MacroIndex { get; set; }
+        public int Line { get; set; }
+        public string Variable { get; set; }
+    }
+
     public class VariableSubstitutionEngine
     {
         /// <summary>
         /// The marker string in Line 6 that identifies a macro as a variable definition.
         /// </summary>
         public const string MARKER = "VARIABLE";
+
+        /// <summary>
+        /// The lock file name stored in the macro directory.
+        /// </summary>
+        public const string LOCK_FILENAME = "mcr.locks";
 
         /// <summary>
         /// Variable map: placeholder name → list of values (primary + alts).
@@ -29,14 +49,21 @@ namespace MacroEditor
         /// </summary>
         private List<KeyValuePair<string, string>> _reversePairs;
 
+        /// <summary>
+        /// Current lock entries in memory.
+        /// </summary>
+        private List<VariableLock> _locks;
+
         public bool HasVariables { get { return _variables != null && _variables.Count > 0; } }
         public int VariableCount { get { return _variables != null ? _variables.Count : 0; } }
+        public int LockCount { get { return _locks != null ? _locks.Count : 0; } }
 
         public VariableSubstitutionEngine()
         {
             _variables = new Dictionary<string, List<string>>();
             _forwardPairs = new List<KeyValuePair<string, string>>();
             _reversePairs = new List<KeyValuePair<string, string>>();
+            _locks = new List<VariableLock>();
         }
 
         /// <summary>
@@ -167,12 +194,26 @@ namespace MacroEditor
 
         /// <summary>
         /// Applies reverse substitution (placeholders → values) to a single string.
+        /// Handles both {name} and {!name} (locked) tokens.
+        /// For normal save, both resolve to the source value.
         /// </summary>
         public string ResolvePlaceholders(string text)
         {
             if (string.IsNullOrEmpty(text) || !HasVariables)
                 return text;
 
+            // First resolve locked placeholders {!name} → source value
+            foreach (var pair in _reversePairs)
+            {
+                // Build the locked version: {name} → {!name}
+                string lockedPlaceholder = "{!" + pair.Key.Substring(1); // "{name}" → "{!name}"
+                if (text.Contains(lockedPlaceholder))
+                {
+                    text = text.Replace(lockedPlaceholder, pair.Value);
+                }
+            }
+
+            // Then resolve normal placeholders {name} → source value
             foreach (var pair in _reversePairs)
             {
                 if (text.Contains(pair.Key))
@@ -262,6 +303,258 @@ namespace MacroEditor
         public IReadOnlyDictionary<string, List<string>> GetVariableMap()
         {
             return _variables;
+        }
+
+        // ===== LOCK FILE SUPPORT =====
+
+        /// <summary>
+        /// Loads lock entries from a JSON lock file.
+        /// Returns the number of locks loaded.
+        /// </summary>
+        public int LoadLocks(string lockFilePath)
+        {
+            _locks.Clear();
+
+            if (!File.Exists(lockFilePath))
+                return 0;
+
+            try
+            {
+                string json = File.ReadAllText(lockFilePath);
+                ParseLocksJson(json);
+            }
+            catch
+            {
+                // If lock file is corrupt, start fresh
+                _locks.Clear();
+            }
+
+            return _locks.Count;
+        }
+
+        /// <summary>
+        /// Applies locks to in-memory books after forward substitution.
+        /// For each lock entry, checks if {variableName} exists at that position.
+        /// If yes → changes to {!variableName}. If no → removes the stale lock.
+        /// Returns the number of stale entries removed.
+        /// </summary>
+        public int ApplyLocks(List<MacroBook> books)
+        {
+            if (_locks.Count == 0 || books == null)
+                return 0;
+
+            int staleCount = 0;
+            var validLocks = new List<VariableLock>();
+
+            foreach (var lockEntry in _locks)
+            {
+                // Bounds check
+                if (lockEntry.Book < 0 || lockEntry.Book >= Math.Min(books.Count, 39))
+                    { staleCount++; continue; }
+                if (lockEntry.Page < 0 || lockEntry.Page >= books[lockEntry.Book].Rows.Count)
+                    { staleCount++; continue; }
+                if (lockEntry.MacroIndex < 0 || lockEntry.MacroIndex >= 20)
+                    { staleCount++; continue; }
+                if (lockEntry.Line < 0 || lockEntry.Line > 6)
+                    { staleCount++; continue; }
+
+                Macro macro = books[lockEntry.Book].Rows[lockEntry.Page].Macros[lockEntry.MacroIndex];
+                string fieldValue = (lockEntry.Line == 0) ? macro.Title : macro.Lines[lockEntry.Line - 1];
+
+                // Check if the expected placeholder exists at this position
+                // Look for {variable} or {variable2}, {variable3}, etc.
+                string basePlaceholder = "{" + lockEntry.Variable + "}";
+                bool found = false;
+
+                if (fieldValue.Contains(basePlaceholder))
+                {
+                    // Replace {name} with {!name} at this position
+                    string lockedPlaceholder = "{!" + lockEntry.Variable + "}";
+                    string newValue = fieldValue.Replace(basePlaceholder, lockedPlaceholder);
+                    if (lockEntry.Line == 0)
+                        macro.Title = newValue;
+                    else
+                        macro.Lines[lockEntry.Line - 1] = newValue;
+                    found = true;
+                }
+                else
+                {
+                    // Check alt placeholders {name2}, {name3}, etc.
+                    for (int alt = 2; alt <= 5; alt++)
+                    {
+                        string altPlaceholder = "{" + lockEntry.Variable + alt + "}";
+                        if (fieldValue.Contains(altPlaceholder))
+                        {
+                            string lockedAlt = "{!" + lockEntry.Variable + alt + "}";
+                            string newValue = fieldValue.Replace(altPlaceholder, lockedAlt);
+                            if (lockEntry.Line == 0)
+                                macro.Title = newValue;
+                            else
+                                macro.Lines[lockEntry.Line - 1] = newValue;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (found)
+                    validLocks.Add(lockEntry);
+                else
+                    staleCount++;
+            }
+
+            _locks = validLocks;
+            return staleCount;
+        }
+
+        /// <summary>
+        /// Rebuilds the lock list by scanning Books 1-39 for {!...} tokens.
+        /// Call this before saving the lock file.
+        /// </summary>
+        public void RebuildLocks(List<MacroBook> books)
+        {
+            _locks.Clear();
+
+            if (books == null || !HasVariables)
+                return;
+
+            var lockedPattern = new Regex(@"\{!([^}]+)\}");
+            int limit = Math.Min(books.Count - 1, 38);
+
+            for (int bookIdx = 0; bookIdx <= limit; bookIdx++)
+            {
+                MacroBook book = books[bookIdx];
+                for (int pageIdx = 0; pageIdx < book.Rows.Count; pageIdx++)
+                {
+                    MacroRow row = book.Rows[pageIdx];
+                    for (int macroIdx = 0; macroIdx < row.Macros.Count; macroIdx++)
+                    {
+                        Macro macro = row.Macros[macroIdx];
+
+                        // Check Title (line index 0)
+                        CheckFieldForLocks(macro.Title, bookIdx, pageIdx, macroIdx, 0, lockedPattern);
+
+                        // Check Lines 1-6 (line indices 1-6)
+                        for (int lineIdx = 0; lineIdx < macro.Lines.Count; lineIdx++)
+                        {
+                            CheckFieldForLocks(macro.Lines[lineIdx], bookIdx, pageIdx, macroIdx, lineIdx + 1, lockedPattern);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CheckFieldForLocks(string text, int book, int page, int macroIdx, int line, Regex pattern)
+        {
+            if (string.IsNullOrEmpty(text))
+                return;
+
+            var matches = pattern.Matches(text);
+            foreach (Match match in matches)
+            {
+                string varName = match.Groups[1].Value;
+                // Strip trailing number for alt placeholders (e.g., "user2" → "user")
+                string baseVar = Regex.Replace(varName, @"\d+$", "");
+                // Only create lock if this is a known variable
+                if (_variables.ContainsKey(baseVar))
+                {
+                    _locks.Add(new VariableLock
+                    {
+                        Book = book,
+                        Page = page,
+                        MacroIndex = macroIdx,
+                        Line = line,
+                        Variable = baseVar
+                    });
+                }
+            }
+        }
+
+        /// <summary>
+        /// Saves the current lock list to a JSON file.
+        /// </summary>
+        public void SaveLocks(string lockFilePath)
+        {
+            if (_locks.Count == 0)
+            {
+                // Delete lock file if no locks exist
+                if (File.Exists(lockFilePath))
+                    File.Delete(lockFilePath);
+                return;
+            }
+
+            string json = BuildLocksJson();
+            File.WriteAllText(lockFilePath, json);
+        }
+
+        /// <summary>
+        /// Simple JSON parser for the lock file (avoids dependency on JSON library).
+        /// </summary>
+        private void ParseLocksJson(string json)
+        {
+            // Minimal parser: find "locks" array and extract objects
+            int locksStart = json.IndexOf("\"locks\"");
+            if (locksStart < 0) return;
+
+            int arrayStart = json.IndexOf('[', locksStart);
+            if (arrayStart < 0) return;
+
+            int arrayEnd = json.LastIndexOf(']');
+            if (arrayEnd < 0) return;
+
+            string arrayContent = json.Substring(arrayStart + 1, arrayEnd - arrayStart - 1);
+
+            // Split by "}" to find individual objects
+            var objectPattern = new Regex(@"\{[^{}]+\}");
+            var matches = objectPattern.Matches(arrayContent);
+
+            foreach (Match match in matches)
+            {
+                string obj = match.Value;
+                var lockEntry = new VariableLock();
+
+                // Extract integer fields
+                var bookMatch = Regex.Match(obj, @"""book""\s*:\s*(\d+)");
+                var pageMatch = Regex.Match(obj, @"""page""\s*:\s*(\d+)");
+                var macroMatch = Regex.Match(obj, @"""macro""\s*:\s*(\d+)");
+                var lineMatch = Regex.Match(obj, @"""line""\s*:\s*(\d+)");
+                var varMatch = Regex.Match(obj, @"""variable""\s*:\s*""([^""]+)""");
+
+                if (bookMatch.Success && pageMatch.Success && macroMatch.Success &&
+                    lineMatch.Success && varMatch.Success)
+                {
+                    lockEntry.Book = int.Parse(bookMatch.Groups[1].Value);
+                    lockEntry.Page = int.Parse(pageMatch.Groups[1].Value);
+                    lockEntry.MacroIndex = int.Parse(macroMatch.Groups[1].Value);
+                    lockEntry.Line = int.Parse(lineMatch.Groups[1].Value);
+                    lockEntry.Variable = varMatch.Groups[1].Value;
+                    _locks.Add(lockEntry);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Builds JSON string for the lock file.
+        /// </summary>
+        private string BuildLocksJson()
+        {
+            var lines = new List<string>();
+            lines.Add("{");
+            lines.Add("  \"version\": 1,");
+            lines.Add("  \"locks\": [");
+
+            for (int i = 0; i < _locks.Count; i++)
+            {
+                var l = _locks[i];
+                string comma = (i < _locks.Count - 1) ? "," : "";
+                lines.Add(string.Format(
+                    "    {{ \"book\": {0}, \"page\": {1}, \"macro\": {2}, \"line\": {3}, \"variable\": \"{4}\" }}{5}",
+                    l.Book, l.Page, l.MacroIndex, l.Line, l.Variable, comma));
+            }
+
+            lines.Add("  ]");
+            lines.Add("}");
+            return string.Join("\r\n", lines);
         }
     }
 }

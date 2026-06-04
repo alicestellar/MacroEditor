@@ -1629,7 +1629,11 @@ namespace MacroEditor
 						if (varCount > 0)
 						{
 							this.variableEngine.SubstituteAll(this.Books);
-							Log("Template variables loaded: " + varCount + " variables");
+							// Load and apply locks (converts {name} → {!name} at locked positions)
+							string lockPath = this.macropath + "\\" + VariableSubstitutionEngine.LOCK_FILENAME;
+							this.variableEngine.LoadLocks(lockPath);
+							this.variableEngine.ApplyLocks(this.Books);
+							Log("Template variables loaded: " + varCount + " variables, " + this.variableEngine.LockCount + " locks");
 						}
 					}
 					this.UpdateStatusBar("Extraction complete", "");
@@ -1716,6 +1720,13 @@ namespace MacroEditor
 					this.UpdateStatusBar("Titles saved.", "Save Complete.");
 				}
 				this.SomethingEdited = false;
+				// Save lock file after successful save
+				if (this.variableEngine.HasVariables)
+				{
+					this.variableEngine.RebuildLocks(this.Books);
+					string lockPath = this.macropath + "\\" + VariableSubstitutionEngine.LOCK_FILENAME;
+					this.variableEngine.SaveLocks(lockPath);
+				}
 			}
 		}
 
