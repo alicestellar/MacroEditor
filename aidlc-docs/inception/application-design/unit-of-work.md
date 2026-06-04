@@ -31,46 +31,51 @@
 - **Entry Criteria**: Unit 2 complete and tested
 - **Exit Criteria**: Builds clean, no Microsoft.VisualBasic reference, passes all regression tests
 
-### Unit 4: Step 1 — config.json Support
-- **Purpose**: Add EditorConfig class and config.json file handling
-- **Scope**: Create EditorConfig.cs. Modify file open dialog to show .json + .ttl. Auto-detect config.json when .ttl opened. Save config.json alongside macros.
-- **Deliverables**: EditorConfig.cs, modified File_Open_Click, modified File_SaveAll_Click
-- **Testing Gate**: Manual run — open via .ttl (should auto-detect config.json), open via .json, save creates config.json
-- **Entry Criteria**: Unit 3 complete and tested
-- **Exit Criteria**: Both open paths work, save produces valid config.json
+### ~~Unit 4: config.json Support~~ — ELIMINATED
+- **Status**: Eliminated by design pivot (2026-06-04)
+- **Reason**: Variable definitions are now stored directly in the macro file (Book 40) instead of a separate config.json. No external configuration file is needed.
 
-### Unit 5: Step 4 — Template Variables
-- **Purpose**: Add variable substitution system for portable macros
-- **Scope**: Create VariableSubstitutionEngine.cs. Add variables to EditorConfig. On load: replace variable values with {placeholders}. On save: reverse substitution. Highlight {placeholders} in distinct color. Prompt for undefined variables on save. Allow user-created variables.
-- **Deliverables**: VariableSubstitutionEngine.cs, UI highlighting, save-time prompting
-- **Testing Gate**: Manual run — load macros with variable values, verify placeholders shown in color, save reverses correctly, new variables prompt on save
-- **Entry Criteria**: Unit 4 complete and tested
-- **Exit Criteria**: Variable substitution works bidirectionally, highlighting visible, undefined vars prompted
+### Unit 5: Template Variables (Redesigned)
+- **Purpose**: Add variable substitution system using Book 40 as the variable definition store
+- **Scope**: Create VariableSubstitutionEngine.cs. On file load, scan Book 40 backwards from Page 10 to extract variable definitions. On display: replace variable values with `{placeholder}` in Books 1-39. On save: reverse substitution (replace placeholders with values) for Books 1-39. Highlight `{placeholders}` in distinct color in the UI. Allow users to create new variables by editing Book 40 directly.
+- **Variable Definition Format**:
+  - Variables live in **Book 40**, scanned **backwards from Page 10**
+  - Each macro slot defines one variable group:
+    - **Title** = placeholder name (e.g., `user`, `server`)
+    - **Line 1** = primary value → substitutes for `{name}` on save
+    - **Line 2** = alt value → substitutes for `{name2}` on save
+    - **Line 3** = alt value → substitutes for `{name3}` on save
+    - **Line 4** = alt value → substitutes for `{name4}` on save
+    - **Line 5** = alt value → substitutes for `{name5}` on save
+    - **Line 6** = `VARIABLE` (marker — identifies this macro as a variable definition)
+  - **Scanning rule**: Start at Page 10, check each macro for `VARIABLE` in line 6. Continue scanning backwards page by page. Stop at the first **complete page** (all 20 macros in the Ctrl+Alt row pair) that has **no** macros with the `VARIABLE` marker.
+  - **Flexibility**: User can start defining variables at any macro slot on Page 10 (not required to start at a specific position). They can use as many pages as needed working backwards.
+- **Deliverables**: VariableSubstitutionEngine.cs, UI highlighting for placeholders, Book 40 variable scanning logic
+- **Testing Gate**: Manual run — define variables in Book 40, load macros, verify placeholders shown in color in Books 1-39, save and verify values written correctly
+- **Entry Criteria**: Unit 3 complete and tested (needs clean codebase + 40-book support in place)
+- **Exit Criteria**: Variable substitution works bidirectionally, highlighting visible, Book 40 scanning works correctly with partial pages
 
-### Unit 6: Step 5 — Export with Variable Substitution
-- **Purpose**: Export macros to another folder with per-destination variable values
-- **Scope**: Add Export menu item. On export: check destination for config.json, read destination variables or prompt to create. Clone macros, apply destination substitution, write to destination.
-- **Deliverables**: Export UI, destination config handling, substitution during export
-- **Testing Gate**: Manual run — export to folder with existing config.json, export to folder without one
+### Unit 6: Export with Variable Substitution (Redesigned)
+- **Purpose**: Export macros to another folder with per-destination variable values read from the destination's Book 40
+- **Scope**: Add Export menu item. On export: read the destination folder's macro files, scan destination's Book 40 for variable definitions using the same scanning rules. Clone current Books 1-39, apply destination variable values (replacing placeholders with destination-specific values), write to destination. If destination has no Book 40 variables defined, prompt user to create them.
+- **Deliverables**: Export UI (folder picker + variable confirmation), destination Book 40 reading, substitution during export
+- **Testing Gate**: Manual run — export to folder with existing Book 40 variables, export to folder without any variables defined
 - **Entry Criteria**: Unit 5 complete and tested
-- **Exit Criteria**: Export produces valid .dat files with destination variable values
+- **Exit Criteria**: Export produces valid .dat files with destination-specific variable values substituted
 
-### Unit 7: Step 2 — 40 Macro Set Support (BLOCKED)
+### Unit 7: 40 Macro Set Support — COMPLETE
 - **Purpose**: Expand from 20 to 40 macro books, parse new file formats
-- **Scope**: TBD after sample file analysis (mcr.sys, mcr.ttl, mcr_2.ttl, mcr.dat, numbered dats)
-- **Deliverables**: TBD
+- **Scope**: Read/write mcr_2.ttl for books 21-40, increase debuglimit to 39, fix WriteRow macroCount bug, fix focus loss on startup
+- **Deliverables**: Updated MacroFileManager with mcr_2.ttl support, 40-book capacity
 - **Testing Gate**: Manual run with both old 20-book and new 40-book file sets
-- **Entry Criteria**: Unit 4 complete + sample files provided and analyzed
-- **Exit Criteria**: TBD
-- **Status**: BLOCKED — awaiting sample files
+- **Entry Criteria**: Unit 3 complete + sample files analyzed
+- **Exit Criteria**: All 40 books load/save correctly
+- **Status**: COMPLETE — Committed 022ce15
 
-### Unit 8: Step 3 — Scrollbar UI
-- **Purpose**: Add scrollbar to book list for 40 macro sets
-- **Scope**: Modify Contents ListBox height/scrollbar behavior to accommodate 40 items
-- **Deliverables**: Scrollable book list, possibly adjusted form layout
-- **Testing Gate**: Manual run — verify all 40 books visible and selectable via scrolling
-- **Entry Criteria**: Unit 7 complete and tested
-- **Exit Criteria**: All macro sets visible and selectable
+### Unit 8: Scrollbar UI — COMPLETE
+- **Purpose**: Scrollbar for book list to accommodate 40 macro sets
+- **Scope**: No code changes needed — WinForms ListBox natively provides scrollbar when items exceed visible area
+- **Status**: COMPLETE — native behavior, no implementation required
 
 ### Unit 9: Undo/Redo System
 - **Purpose**: Add undo/redo stack with Ctrl+Z / Ctrl+Shift+Z support
@@ -102,7 +107,22 @@
 - **Entry Criteria**: Unit 10 complete (visual enhancements should be in place first)
 - **Exit Criteria**: Editable macro map opens, allows editing, saves correctly back to data model
 
-## Code Organization (Target)
+### Unit 12: Text File Import/Export for Macro Sets
+- **Purpose**: Allow users to export a macro set (book) to a human-readable text file and import it back
+- **Scope**: Add Export to Text and Import from Text options. The text format should be readable and editable by humans in a text editor. Export writes one book's macros to a .txt file. Import reads a .txt file and loads it into the current book (or a selected book).
+- **Deliverables**: Export/Import menu items, text file format definition, MacroTextSerializer.cs
+- **Testing Gate**: Manual run — export a book to text, edit the text file externally, import it back, verify macros loaded correctly
+- **Entry Criteria**: Unit 2 complete (needs clean data model)
+- **Exit Criteria**: Round-trip export→edit→import works, format is human-readable
+
+### Unit 13: Compiler Warning Cleanup
+- **Purpose**: Eliminate all compiler warnings for a clean build output
+- **Scope**: Fix unused variable warnings (CS0168) in Resizer.cs, MacroFileManager.cs, MainForm.cs. Fix unassigned field warnings (CS0649) in Designer files. Address any other warnings introduced by later units.
+- **Deliverables**: Zero-warning build
+- **Testing Gate**: `dotnet build` produces 0 warnings
+- **Entry Criteria**: All other units complete
+- **Exit Criteria**: Clean build with no warnings
+- **Priority**: Low — cosmetic cleanup, does not affect functionality
 
 ```text
 Macro Editor/
@@ -111,8 +131,7 @@ Macro Editor/
 │   ├── MacroRow.cs
 │   ├── MacroBook.cs
 │   ├── ValidationResult.cs
-│   ├── UndoableAction.cs
-│   └── EditorConfig.cs
+│   └── UndoableAction.cs
 ├── Services/
 │   ├── MacroFileManager.cs
 │   ├── AutoTranslateEncoder.cs

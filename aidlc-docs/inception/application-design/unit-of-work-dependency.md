@@ -4,64 +4,76 @@
 
 ```mermaid
 flowchart TD
-    U1["Unit 1: Deduplication"]
-    U2["Unit 2: MVC Separation"]
-    U3["Unit 3: VB.NET Removal"]
-    U4["Unit 4: config.json"]
+    U1["Unit 1: Deduplication<br/>DONE"]
+    U2["Unit 2: MVC Separation<br/>DONE"]
+    U3["Unit 3: VB.NET Removal<br/>DONE"]
     U5["Unit 5: Template Variables"]
     U6["Unit 6: Export"]
-    U7["Unit 7: 40 Macro Sets<br/>BLOCKED"]
-    U8["Unit 8: Scrollbar UI"]
+    U7["Unit 7: 40 Macro Sets<br/>DONE"]
+    U8["Unit 8: Scrollbar UI<br/>DONE"]
     U9["Unit 9: Undo/Redo"]
+    U10["Unit 10: Macro Map Visuals"]
+    U11["Unit 11: Editable Macro Map"]
+    U12["Unit 12: Text Import/Export"]
 
     U1 --> U2
     U2 --> U3
-    U3 --> U4
-    U4 --> U5
+    U3 --> U5
     U5 --> U6
-    U4 --> U7
+    U3 --> U7
     U7 --> U8
     U2 --> U9
+    U2 --> U10
+    U10 --> U11
+    U2 --> U12
 
-    style U7 fill:#BDBDBD,stroke:#424242,stroke-width:2px,stroke-dasharray: 5 5,color:#000
-    style U8 fill:#BDBDBD,stroke:#424242,stroke-width:2px,stroke-dasharray: 5 5,color:#000
+    style U1 fill:#4CAF50,stroke:#1B5E20,stroke-width:2px,color:#fff
+    style U2 fill:#4CAF50,stroke:#1B5E20,stroke-width:2px,color:#fff
+    style U3 fill:#4CAF50,stroke:#1B5E20,stroke-width:2px,color:#fff
+    style U7 fill:#4CAF50,stroke:#1B5E20,stroke-width:2px,color:#fff
+    style U8 fill:#4CAF50,stroke:#1B5E20,stroke-width:2px,color:#fff
 ```
 
 ## Dependency Matrix
 
-| Unit | Depends On | Blocks |
-|------|-----------|--------|
-| Unit 1: Deduplication | Baseline (DONE) | Unit 2 |
-| Unit 2: MVC Separation | Unit 1 | Unit 3, Unit 9 |
-| Unit 3: VB.NET Removal | Unit 2 | Unit 4 |
-| Unit 4: config.json | Unit 3 | Unit 5, Unit 7 |
-| Unit 5: Template Variables | Unit 4 | Unit 6 |
-| Unit 6: Export | Unit 5 | (none) |
-| Unit 7: 40 Macro Sets | Unit 4 + sample files | Unit 8 |
-| Unit 8: Scrollbar UI | Unit 7 | (none) |
-| Unit 9: Undo/Redo | Unit 2 | (none) |
+| Unit                           | Depends On         | Blocks     | Status   |
+|--------------------------------|--------------------|------------|----------|
+| Unit 1: Deduplication          | Baseline           | Unit 2     | DONE     |
+| Unit 2: MVC Separation         | Unit 1             | Unit 3, 9, 10, 12 | DONE     |
+| Unit 3: VB.NET Removal         | Unit 2             | Unit 5, 7  | DONE     |
+| ~~Unit 4: config.json~~        | ~~Unit 3~~         | —          | ELIMINATED |
+| Unit 5: Template Variables     | Unit 3 + Unit 7    | Unit 6     | Pending  |
+| Unit 6: Export                  | Unit 5             | (none)     | Pending  |
+| Unit 7: 40 Macro Sets          | Unit 3             | Unit 8     | DONE     |
+| Unit 8: Scrollbar UI           | Unit 7             | (none)     | DONE     |
+| Unit 9: Undo/Redo              | Unit 2             | (none)     | Pending  |
+| Unit 10: Macro Map Visuals     | Unit 2             | Unit 11    | Pending  |
+| Unit 11: Editable Macro Map    | Unit 10            | (none)     | Pending  |
+| Unit 12: Text Import/Export    | Unit 2             | (none)     | Pending  |
+| Unit 13: Warning Cleanup       | All other units    | (none)     | Pending  |
 
 ## Execution Order
 
 **Critical Path** (must be sequential):
-```
-Baseline → Unit 1 → Unit 2 → Unit 3 → Unit 4 → Unit 5 → Unit 6
+```text
+Baseline → Unit 1 → Unit 2 → Unit 3 → Unit 5 → Unit 6
 ```
 
-**Parallel Opportunities**:
-- Unit 9 (Undo/Redo) can start after Unit 2, independent of Units 3-6
-- Unit 7 (40 Macro Sets) can start after Unit 4, independent of Units 5-6
+**Parallel Opportunities** (all unblocked now):
+- Unit 5 (Template Variables) — next on critical path
+- Unit 9 (Undo/Redo) — independent, unblocked since Unit 2
+- Unit 10 (Macro Map Visuals) — independent, unblocked since Unit 2
+- Unit 12 (Text Import/Export) — independent, unblocked since Unit 2
 
-**Blocked**:
-- Unit 7 requires sample files from user (not yet provided)
-- Unit 8 requires Unit 7
+**Completed**:
+- Units 1, 2, 3, 7, 8 all done and committed
 
 ## Shared Resources
 
-| Resource | Used By | Notes |
-|----------|---------|-------|
-| Data Model (MacroBook/Row/Macro) | All units after Unit 2 | Established in Unit 2, used everywhere |
-| MacroFileManager | Units 4, 5, 6, 7 | File I/O goes through this class |
-| EditorConfig | Units 4, 5, 6, 7 | Config management |
-| VariableSubstitutionEngine | Units 5, 6 | Substitution logic |
-| MacroEditorUtils | Potentially all units | Shared utilities |
+| Resource                      | Used By          | Notes                                          |
+|-------------------------------|------------------|------------------------------------------------|
+| Data Model (MacroBook/Row/Macro) | All units after Unit 2 | Established in Unit 2, used everywhere     |
+| MacroFileManager              | Units 5, 6, 12   | File I/O goes through this class               |
+| Book 40 (Variable Store)      | Units 5, 6       | Variables defined in Book 40 macro slots       |
+| VariableSubstitutionEngine    | Units 5, 6       | Reads Book 40, performs substitution           |
+| MacroEditorUtils              | Potentially all   | Shared utilities                               |

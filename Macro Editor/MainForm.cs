@@ -67,6 +67,7 @@ namespace MacroEditor
 			this.lfs = new Regex("\\r|\\n");
 			this.atEncoder = new AutoTranslateEncoder();
 			this.fileManager = new MacroFileManager(this.atEncoder);
+			this.variableEngine = new VariableSubstitutionEngine();
 			this.Evaluation = null;
 			this.SearchResults = null;
 			this.MacroMap = null;
@@ -1621,6 +1622,16 @@ namespace MacroEditor
 						while (num3 <= 9);
 					}
 					Log("File loaded: " + this.Books.Count + " books");
+					// Load template variables from Book 40 and apply substitution to Books 1-39
+					if (this.Books.Count >= 40)
+					{
+						int varCount = this.variableEngine.LoadVariables(this.Books[39]);
+						if (varCount > 0)
+						{
+							this.variableEngine.SubstituteAll(this.Books);
+							Log("Template variables loaded: " + varCount + " variables");
+						}
+					}
 					this.UpdateStatusBar("Extraction complete", "");
 					foreach (object obj in base.Controls)
 					{
@@ -1651,13 +1662,31 @@ namespace MacroEditor
 			{
 				if (flag)
 				{
+					// Resolve template variables for Books 1-39 before saving
+					List<MacroBook> saveBooks = null;
+					if (this.variableEngine.HasVariables)
+					{
+						saveBooks = this.variableEngine.ResolveAllForSave(this.Books);
+					}
+
 					int num2 = 0;
 					for (;;)
 					{
 						int num3 = 0;
 						do
 						{
-							bool flag2 = !this.WriteFile(num2, num3);
+							bool flag2;
+							if (num2 <= 38 && saveBooks != null)
+							{
+								// Write resolved (de-substituted) data for Books 1-39
+								flag2 = !this.fileManager.WriteRow(this.macropath, num2, num3,
+									saveBooks[num2].Rows[num3], this.BooksPreserved[num2].Rows[num3], 19);
+							}
+							else
+							{
+								// Write Book 40 directly (no substitution) or if no variables
+								flag2 = !this.WriteFile(num2, num3);
+							}
 							if (flag2)
 							{
 								goto Block_2;
@@ -2166,7 +2195,27 @@ namespace MacroEditor
 			bool flag = num == 6;
 			if (flag)
 			{
-				bool flag2 = !this.WriteFile(this.xBook, this.xRow);
+				bool flag2;
+				if (this.xBook <= 38 && this.variableEngine.HasVariables)
+				{
+					// Resolve placeholders for this row before writing
+					MacroRow resolvedRow = this.Books[this.xBook].Rows[this.xRow].Clone();
+					foreach (Macro macro in resolvedRow.Macros)
+					{
+						macro.Title = this.variableEngine.ResolvePlaceholders(macro.Title);
+						for (int i = 0; i < macro.Lines.Count; i++)
+						{
+							macro.Lines[i] = this.variableEngine.ResolvePlaceholders(macro.Lines[i]);
+						}
+					}
+					flag2 = !this.fileManager.WriteRow(this.macropath, this.xBook, this.xRow,
+						resolvedRow, this.BooksPreserved[this.xBook].Rows[this.xRow], 19);
+				}
+				else
+				{
+					// Book 40 or no variables — write directly
+					flag2 = !this.WriteFile(this.xBook, this.xRow);
+				}
 				if (flag2)
 				{
 					this.UpdateStatusBar("Error", "An error occurred while writing files.");
@@ -4101,6 +4150,9 @@ namespace MacroEditor
 
 		// Field: MacroFileManager for file I/O operations
 		private MacroFileManager fileManager;
+
+		// Field: Variable substitution engine for template variables in Book 40
+		private VariableSubstitutionEngine variableEngine;
 
 		// Token: 0x04000042 RID: 66
 		public Assessment Evaluation;

@@ -179,3 +179,148 @@
 **Context**: Unit 7 (40 Macro Sets) is now UNBLOCKED. Format analysis complete.
 
 ---
+
+## Session Resume
+**Timestamp**: 2026-06-04T00:00:00Z
+**User Input**: "Using AIDLC, I'd like to continue work on MacroEditor"
+**AI Response**: Detected existing project. Loaded aidlc-state.md (stale), checked git history. Found Units 1-3, 7, and 8 all complete. Presented status.
+**Context**: Session resumption. State file was out of date.
+
+---
+
+## State File Correction
+**Timestamp**: 2026-06-04T00:01:00Z
+**User Input**: "Update state, but I also need to inform you that the scrollbar UI appeared without any necessary code changes due to how windows applications work natively. Unit 8 also needs to be marked done."
+**AI Response**: Updated aidlc-state.md to reflect actual progress: Units 1, 2 (a-e), 3 (a-b), 7, and 8 all complete. Unit 8 required no code changes — WinForms ListBox provides native scrollbar when items exceed visible area. Updated project structure from Monolith to Layered OOP. Current stage set to CONSTRUCTION - Unit 4 pending.
+**Context**: State file corrected. Remaining units: 4, 5, 6, 9, 10, 11, 12.
+
+---
+
+## Session Pause
+**Timestamp**: 2026-06-04T00:02:00Z
+**User Input**: "I forgot to update my macros with the names of the characters that they are related to so that I could reliably put a name to a config. I will need to do that before continuing. I'm going to go eat lunch, then I can do that and we can continue."
+**AI Response**: Session paused. User needs to rename macro books with character names before starting Unit 4 (config.json) so each config can be associated with a character. Next step on return: Unit 4 after user completes macro naming.
+**Context**: CONSTRUCTION - Unit 4 pending. User doing prep work (renaming macros) before we proceed.
+
+---
+
+## Design Pivot - Variables in Macro Book 40
+**Timestamp**: 2026-06-04T01:00:00Z
+**User Input**: "Let's change the config file... instead of a config file, let's include the variable substitutions IN the macro file. They will be included in Macro book 40. The title of the macro is the value for the placeholders. The first line is the value to replace the placeholders with on save."
+**AI Response**: Asked clarifying questions about config.json removal, Book 40 reservation, load/save/export behavior, and unused lines.
+**Context**: CONSTRUCTION - Design pivot. config.json being replaced with in-macro-file variable storage.
+
+---
+
+## Design Pivot - Clarification 1
+**Timestamp**: 2026-06-04T01:01:00Z
+**User Input**: "1. Dropped entirely for now. We probably won't need it.
+
+2. We work backwards from Book 40 Page 10. The last line of a macro should have a value to let the program know that the macro is a placeholder. The other five lines can be alternative values, and each one would be used with "placeholder#" So the top line is replaced with {name}, but the second line is replaced with {name2}. If an entire page is found without the "marker" in line 6, then we stop checking for variables. This way the user can define as many variables as they need, and group them logically, but they aren't locked in to a set number.
+
+3. Yes, but with the changes I listed in item 2.
+
+4. Correct, but with the changes in item 2.
+
+5. I explained in item 2."
+**AI Response**: Captured flexible variable system design. Asked about marker value and scanning direction confirmation.
+**Context**: Variable system design: Book 40 pages 10→1, marker in line 6, title=placeholder name, lines 1-5=values for {name} through {name5}.
+
+---
+
+## Design Pivot - Clarification 2
+**Timestamp**: 2026-06-04T01:02:00Z
+**User Input**: "1. I don't want special characters. VARIABLE in all caps is probably best.
+
+2. That is correct. Please note that the user is free to start with any individual macro in page 10. They don't HAVE to start with alt 0. they can start with ctrl 1. They just HAVE to start with SOME macro in page 10."
+**AI Response**: Final design confirmed. Marker = "VARIABLE" (all caps, line 6). Scanning: Book 40 Page 10 → backwards, stops at first full page with no markers. User can start with any macro on Page 10. config.json dropped entirely. Updating roadmap.
+**Context**: Variable system design finalized. Unit 4 (config.json) eliminated. Units 5/6 redesigned around Book 40 variable storage.
+
+---
+
+## Roadmap Update - Design Pivot Applied
+**Timestamp**: 2026-06-04T01:10:00Z
+**User Input**: "Go ahead an update the unit of work file. Once that's done I'll decide what to do next"
+**AI Response**: Updated unit-of-work.md and unit-of-work-dependency.md to reflect design pivot:
+- Unit 4 (config.json) marked ELIMINATED
+- Unit 5 (Template Variables) redesigned: variables stored in Book 40 macros, scanned backwards from Page 10, marker "VARIABLE" in line 6, title=placeholder name, lines 1-5=values for {name} through {name5}
+- Unit 6 (Export) redesigned: reads destination's Book 40 for variable values instead of config.json
+- Units 7/8 marked DONE with commit references
+- Dependency diagram updated: Unit 4 removed from chain, Unit 5 now depends on Unit 3 + Unit 7
+- EditorConfig.cs removed from planned file structure
+- Shared resources updated: Book 40 replaces EditorConfig as variable store
+**Context**: CONSTRUCTION - Roadmap documentation updated. Ready for user to decide next step.
+
+---
+
+## Unit 5 - Template Variables Start
+**Timestamp**: 2026-06-04T01:15:00Z
+**User Input**: "Alright. Let's start on the Template Variables functionality. I have a couple of characters ready, and I've managed to identify them prior to this. That will allow us to test."
+**AI Response**: Beginning Unit 5 (Template Variables). Per AIDLC Construction workflow: Functional Design first (since this involves new business logic — variable scanning, substitution engine, UI highlighting), then Code Generation. Loading existing code to understand current state before designing.
+**Context**: CONSTRUCTION - Unit 5 (Template Variables). Starting with Functional Design stage.
+
+---
+
+## Unit 5 - Functional Design Complete
+**Timestamp**: 2026-06-04T01:20:00Z
+**AI Response**: Created functional design for Unit 5 (Template Variables). Document covers:
+- Variable storage format in Book 40 (Title=placeholder name, Lines[0-4]=values, Lines[5]=VARIABLE marker)
+- Scanning algorithm (backwards from Page 10, stops at first full page with no markers)
+- VariableSubstitutionEngine class API (LoadVariables, ApplyPlaceholders, ResolvePlaceholders, SubstituteAll, ResolveAllForSave)
+- Integration points in MainForm (File_Open_Click, File_SaveAll_Click, File_SaveRow_Click)
+- Substitution order (length-descending to prevent partial matches)
+- Edge cases and conflict resolution
+- Testing scenarios
+- UI highlighting deferred to sub-task after core engine works
+Awaiting user review.
+**Context**: CONSTRUCTION - Unit 5, Functional Design stage. Awaiting approval.
+
+---
+
+## Unit 5 - Functional Design Approved
+**Timestamp**: 2026-06-04T01:25:00Z
+**User Input**: "Looks good. Let's continue."
+**AI Response**: Functional design approved. Proceeding to Code Generation stage (Part 1: Planning).
+**Context**: CONSTRUCTION - Unit 5, Functional Design approved. Moving to Code Generation.
+
+---
+
+## Unit 5 - Code Generation Plan Approved
+**Timestamp**: 2026-06-04T01:26:00Z
+**User Input**: "Go ahead"
+**AI Response**: Code generation plan approved. Beginning implementation: Step 1 (VariableSubstitutionEngine.cs), Step 2 (MainForm load integration), Step 3 (MainForm save integration), Step 4 (build/verify).
+**Context**: CONSTRUCTION - Unit 5, Code Generation Part 2 (implementation).
+
+---
+
+## New Requirement - Variable Exclusion
+**Timestamp**: 2026-06-04T01:30:00Z
+**User Input**: "We have a new requirement. We need to be able to designate when we don't want an instance of a variable to be replaced at export. Ideally we would do this once and never have to do so again. Can you run me through some options?"
+**AI Response**: Presenting options for marking specific placeholder instances as non-replaceable during export.
+**Context**: CONSTRUCTION - Unit 5/6 scope addition. User wants to lock certain placeholder occurrences from export substitution.
+
+---
+
+## New Requirement - Variable Lock Mechanism
+**Timestamp**: 2026-06-04T01:35:00Z
+**User Input**: "I think we should probably create a dedicated lock file. The file should store the Book, Page, Macro, line, and variable that is locked for each locked variable. On load it looks for that variable in that position. If that variable doesn't exist in that position, the data for that position is deleted (the lock no longer applies). If that variable does exist in that position, then it appends the !."
+**AI Response**: Presented summary of lock file mechanism. Asked about file format and lock creation UX.
+**Context**: CONSTRUCTION - Unit 5/6 scope addition. Lock mechanism for non-replaceable variable instances.
+
+---
+
+## Variable Lock - Format Decision
+**Timestamp**: 2026-06-04T01:36:00Z
+**User Input**: "JSON" (for lock file format), "Yes, typing {!user} is how you lock it" (for lock creation mechanism)
+**AI Response**: Confirmed design:
+- Lock file: JSON format, stored as mcr.locks in macro directory
+- Entries: book, page, macro, line, variableName
+- User creates locks by typing {!user} directly in the text box
+- On load: read lock file, apply forward substitution, then for each lock entry check if {variableName} exists at that position → if yes, change to {!variableName}; if no, delete stale lock entry
+- On save: {!user} resolves to source value (Makaria), {user} resolves to source value too (same on normal save). Rebuild lock file from all {!...} tokens in memory.
+- On export: {user} → destination value, {!user} → source value (Makaria stays Makaria)
+- Self-healing: stale lock entries removed automatically
+Updating functional design.
+**Context**: Lock mechanism finalized. Updating Unit 5 functional design and noting Unit 6 export impact.
+
+---
