@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
-using Microsoft.VisualBasic;
 
 namespace MacroEditor
 {
@@ -20,48 +19,37 @@ namespace MacroEditor
 		// Token: 0x0600013E RID: 318 RVA: 0x0000C110 File Offset: 0x0000A310
 		public void FindAllControls(Control thisCtrl)
 		{
-			try
+			foreach (object obj in thisCtrl.Controls)
 			{
-				foreach (object obj in thisCtrl.Controls)
+				Control control = (Control)obj;
+				try
 				{
-					Control control = (Control)obj;
-					try
+					bool flag = control.Parent != null;
+					if (flag)
 					{
-						bool flag = !Information.IsNothing(control.Parent);
-						if (flag)
-						{
-							int height = control.Parent.Height;
-							int width = control.Parent.Width;
-							Resizer.ControlInfo controlInfo = default(Resizer.ControlInfo);
-							controlInfo.name = control.Name;
-							controlInfo.parentName = control.Parent.Name;
-							controlInfo.topOffsetPercent = Convert.ToDouble(control.Top) / Convert.ToDouble(height);
-							controlInfo.leftOffsetPercent = Convert.ToDouble(control.Left) / Convert.ToDouble(width);
-							controlInfo.heightPercent = Convert.ToDouble(control.Height) / Convert.ToDouble(height);
-							controlInfo.widthPercent = Convert.ToDouble(control.Width) / Convert.ToDouble(width);
-							controlInfo.originalFontSize = control.Font.Size;
-							controlInfo.originalHeight = control.Height;
-							controlInfo.originalWidth = control.Width;
-							this.ctrlDict.Add(controlInfo.name, controlInfo);
-						}
-					}
-					catch (Exception ex)
-					{
-						Debug.Print(ex.Message);
-					}
-					bool flag2 = control.Controls.Count > 0;
-					if (flag2)
-					{
-						this.FindAllControls(control);
+						int height = control.Parent.Height;
+						int width = control.Parent.Width;
+						Resizer.ControlInfo controlInfo = default(Resizer.ControlInfo);
+						controlInfo.name = control.Name;
+						controlInfo.parentName = control.Parent.Name;
+						controlInfo.topOffsetPercent = Convert.ToDouble(control.Top) / Convert.ToDouble(height);
+						controlInfo.leftOffsetPercent = Convert.ToDouble(control.Left) / Convert.ToDouble(width);
+						controlInfo.heightPercent = Convert.ToDouble(control.Height) / Convert.ToDouble(height);
+						controlInfo.widthPercent = Convert.ToDouble(control.Width) / Convert.ToDouble(width);
+						controlInfo.originalFontSize = control.Font.Size;
+						controlInfo.originalHeight = control.Height;
+						controlInfo.originalWidth = control.Width;
+						this.ctrlDict.Add(controlInfo.name, controlInfo);
 					}
 				}
-			}
-			finally
-			{
-				IEnumerator enumerator;
-				if (enumerator is IDisposable)
+				catch (Exception ex)
 				{
-					(enumerator as IDisposable).Dispose();
+					Debug.Print(ex.Message);
+				}
+				bool flag2 = control.Controls.Count > 0;
+				if (flag2)
+				{
+					this.FindAllControls(control);
 				}
 			}
 		}
@@ -69,63 +57,52 @@ namespace MacroEditor
 		// Token: 0x0600013F RID: 319 RVA: 0x0000C2D4 File Offset: 0x0000A4D4
 		public void ResizeAllControls(Control thisCtrl)
 		{
-			try
+			foreach (object obj in thisCtrl.Controls)
 			{
-				foreach (object obj in thisCtrl.Controls)
+				Control control = (Control)obj;
+				try
 				{
-					Control control = (Control)obj;
-					try
+					bool flag = control.Parent != null;
+					if (flag)
 					{
-						bool flag = !Information.IsNothing(control.Parent);
-						if (flag)
+						int height = control.Parent.Height;
+						int width = control.Parent.Width;
+						Resizer.ControlInfo controlInfo = default(Resizer.ControlInfo);
+						try
 						{
-							int height = control.Parent.Height;
-							int width = control.Parent.Width;
-							Resizer.ControlInfo controlInfo = default(Resizer.ControlInfo);
-							try
+							bool flag2 = this.ctrlDict.TryGetValue(control.Name, out controlInfo);
+							bool flag3 = flag2;
+							if (flag3)
 							{
-								bool flag2 = this.ctrlDict.TryGetValue(control.Name, out controlInfo);
-								bool flag3 = flag2;
-								if (flag3)
+								Font font;
+								float num;
+								float num2;
+								checked
 								{
-									Font font;
-									float num;
-									float num2;
-									checked
-									{
-										control.Width = (int)Math.Round(Conversion.Int(unchecked((double)width * controlInfo.widthPercent)));
-										control.Height = (int)Math.Round(Conversion.Int(unchecked((double)height * controlInfo.heightPercent)));
-										control.Top = (int)Math.Round(Conversion.Int(unchecked((double)height * controlInfo.topOffsetPercent)));
-										control.Left = (int)Math.Round(Conversion.Int(unchecked((double)width * controlInfo.leftOffsetPercent)));
-										font = control.Font;
-										num = (float)((double)control.Width / (double)controlInfo.originalWidth);
-										num2 = (float)((double)control.Height / (double)controlInfo.originalHeight);
-									}
-									float num3 = (num + num2) / 2f;
-									control.Font = new Font(font.FontFamily, controlInfo.originalFontSize * num3, font.Style);
+									control.Width = (int)Math.Round(Math.Floor(unchecked((double)width * controlInfo.widthPercent)));
+									control.Height = (int)Math.Round(Math.Floor(unchecked((double)height * controlInfo.heightPercent)));
+									control.Top = (int)Math.Round(Math.Floor(unchecked((double)height * controlInfo.topOffsetPercent)));
+									control.Left = (int)Math.Round(Math.Floor(unchecked((double)width * controlInfo.leftOffsetPercent)));
+									font = control.Font;
+									num = (float)((double)control.Width / (double)controlInfo.originalWidth);
+									num2 = (float)((double)control.Height / (double)controlInfo.originalHeight);
 								}
-							}
-							catch (Exception ex)
-							{
+								float num3 = (num + num2) / 2f;
+								control.Font = new Font(font.FontFamily, controlInfo.originalFontSize * num3, font.Style);
 							}
 						}
-					}
-					catch (Exception ex2)
-					{
-					}
-					bool flag4 = control.Controls.Count > 0;
-					if (flag4)
-					{
-						this.ResizeAllControls(control);
+						catch (Exception ex)
+						{
+						}
 					}
 				}
-			}
-			finally
-			{
-				IEnumerator enumerator;
-				if (enumerator is IDisposable)
+				catch (Exception ex2)
 				{
-					(enumerator as IDisposable).Dispose();
+				}
+				bool flag4 = control.Controls.Count > 0;
+				if (flag4)
+				{
+					this.ResizeAllControls(control);
 				}
 			}
 		}

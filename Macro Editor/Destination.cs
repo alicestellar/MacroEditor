@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -6,12 +6,10 @@ using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 using MacroEditor.My;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace MacroEditor
 {
 	// Token: 0x02000009 RID: 9
-	[DesignerGenerated]
 	public partial class Destination : Form
 	{
 		// Token: 0x0600002B RID: 43 RVA: 0x00002C28 File Offset: 0x00000E28
@@ -50,7 +48,7 @@ namespace MacroEditor
 				int num = this.mainWin.Contents.Items.Count - 1;
 				for (int i = 0; i <= num; i++)
 				{
-					this.DestContents.Items.Add(RuntimeHelpers.GetObjectValue(this.mainWin.Contents.Items[i]));
+					this.DestContents.Items.Add(this.mainWin.Contents.Items[i]);
 				}
 				int num2 = 0;
 				do
@@ -63,7 +61,7 @@ namespace MacroEditor
 					button.Top = 11;
 					button.Tag = num2;
 					button.Text = (num2 + 1).ToString();
-					button.Name = "Row" + Conversions.ToString(num2);
+					button.Name = "Row" + num2.ToString();
 					button.BackColor = this.BackColor;
 					this.Rows.Add(num2, button);
 					base.Controls.Add(button);
@@ -80,7 +78,8 @@ namespace MacroEditor
 				base.Controls.Add(button2);
 				button2.Click += delegate(object a0, EventArgs a1)
 				{
-					this._Lambda$__21-0();
+					this.DialogResult = DialogResult.OK;
+					this.Close();
 				};
 				Button button3 = new Button();
 				button3.Top = 11;
@@ -91,7 +90,8 @@ namespace MacroEditor
 				base.Controls.Add(button3);
 				button3.Click += delegate(object a0, EventArgs a1)
 				{
-					this._Lambda$__21-1();
+					this.DialogResult = DialogResult.Cancel;
+					this.Close();
 				};
 				this.DestContents.SelectedIndexChanged += this.DestContents_SelectedIndexChanged;
 				this.DestContents.SelectedIndex = this.xBook;
@@ -112,20 +112,20 @@ namespace MacroEditor
 		{
 			string[] array = new string[10];
 			string[] array2 = new string[10];
-			this.xRow = Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			this.xRow = Convert.ToInt32(((Button)sender).Tag);
 			int num = 0;
 			checked
 			{
 				do
 				{
-					array[num] = "[" + this.mainWin.MacroContainer[this.xBook, this.xRow, num][0].PadRight(8, ' ') + "]";
+					array[num] = "[" + this.mainWin.Books[this.xBook].Rows[this.xRow].Macros[num][0].PadRight(8, ' ') + "]";
 					num++;
 				}
 				while (num <= 9);
 				int num2 = 10;
 				do
 				{
-					array2[num2 - 10] = "[" + this.mainWin.MacroContainer[this.xBook, this.xRow, num2 - 10][0].PadRight(8, ' ') + "]";
+					array2[num2 - 10] = "[" + this.mainWin.Books[this.xBook].Rows[this.xRow].Macros[num2 - 10][0].PadRight(8, ' ') + "]";
 					num2++;
 				}
 				while (num2 <= 19);

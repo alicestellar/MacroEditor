@@ -1,19 +1,22 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-using MacroEditor.My;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace MacroEditor
 {
 	// Token: 0x0200000B RID: 11
-	[DesignerGenerated]
 	public partial class MacroMapForm : Form
 	{
+		private Action<int, int, int> navigateCallback;
+
+		public void SetNavigateCallback(Action<int, int, int> callback)
+		{
+			this.navigateCallback = callback;
+		}
+
 		// Token: 0x0600012F RID: 303 RVA: 0x0000BA79 File Offset: 0x00009C79
 		public MacroMapForm()
 		{
@@ -37,11 +40,11 @@ namespace MacroEditor
 			label.TabIndex = 0;
 			label.Tag = string.Concat(new string[]
 			{
-				Conversions.ToString(b),
+				b.ToString(),
 				",",
-				Conversions.ToString(r),
+				r.ToString(),
 				",",
-				Conversions.ToString(m)
+				m.ToString()
 			});
 			bool flag = m < 10;
 			checked
@@ -56,7 +59,7 @@ namespace MacroEditor
 					label.Top = label.Height + 40 + (label.Height + 20) * 2 * r;
 					label.Left = 170 * (m - 10) + 20;
 				}
-				label.Text = Strings.Join(a, "\r\n");
+				label.Text = string.Join("\r\n", a);
 				label.MouseDown += new MouseEventHandler(this.mbox_Click);
 				base.Controls.Add(label);
 				return true;
@@ -66,27 +69,21 @@ namespace MacroEditor
 		// Token: 0x06000135 RID: 309 RVA: 0x0000BCA0 File Offset: 0x00009EA0
 		private void mbox_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null), null, "split", new object[]
-			{
-				","
-			}, null, null, null));
+			string tagStr = (string)((Label)sender).Tag;
+			string[] parts = tagStr.Split(',');
 			base.ActiveControl = null;
-			MyProject.Forms.MainForm.FindMacro(Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				0
-			}, null)), Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				1
-			}, null)), Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				2
-			}, null)));
+			if (this.navigateCallback != null)
+				this.navigateCallback(
+					Convert.ToInt32(parts[0]),
+					Convert.ToInt32(parts[1]),
+					Convert.ToInt32(parts[2]));
 		}
 
 		// Token: 0x06000136 RID: 310 RVA: 0x0000BD4E File Offset: 0x00009F4E
 		private void MacroMap_Load(object sender, EventArgs e)
 		{
 			this.AutoScroll = true;
+			this.Width = 1740;
 			base.ActiveControl = null;
 		}
 	}

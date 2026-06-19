@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,19 +13,21 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using MacroEditor.My;
 using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.CompilerServices;
 using Microsoft.Win32;
 using Yekyaa.FFXIEncoding;
 
 namespace MacroEditor
 {
 	// Token: 0x0200000A RID: 10
-	[DesignerGenerated]
 	public partial class MainForm : Form
 	{
 		// Token: 0x0600003C RID: 60 RVA: 0x000033E8 File Offset: 0x000015E8
+		private static string _logPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "crash.log");
+		private static void Log(string msg) { System.IO.File.AppendAllText(_logPath, msg + "\n"); }
+
 		public MainForm()
 		{
+			Log("Constructor: start");
 			base.KeyDown += this.Form1_KeyDown;
 			base.Shown += this.Form1_Shown;
 			base.Load += this.Form1_Load;
@@ -33,13 +35,16 @@ namespace MacroEditor
 			base.Resize += this.Form1_Resize;
 			base.FormClosing += this.MainForm_FormClosing;
 			base.MouseWheel += this.MainForm_MouseWheel;
+			Log("Constructor: events wired");
 			this.Ctrls = new Dictionary<int, Button>();
 			this.Rows = new Dictionary<int, Button>();
 			this.Lines = new Dictionary<int, TextBox>();
-			this.macropath = Conversions.ToString(Operators.ConcatenateObject(this.GetFFXIDirectory(), "USER\\"));
-			this.importpath = Conversions.ToString(Operators.ConcatenateObject(this.GetFFXIDirectory(), "USER\\"));
-			this.MacroContainer = new string[20, 10, 20][];
-			this.MacroPreserved = new string[20, 10, 20][];
+			Log("Constructor: before GetFFXIDirectory");
+			this.macropath = this.GetFFXIDirectory().ToString() + "USER\\";
+			this.importpath = this.GetFFXIDirectory().ToString() + "USER\\";
+			Log("Constructor: after GetFFXIDirectory");
+			this.Books = new List<MacroBook>();
+			this.BooksPreserved = new List<MacroBook>();
 			this.Contents = new ListBox();
 			this.bWidth = 60;
 			this.bHeight = 50;
@@ -49,63 +54,26 @@ namespace MacroEditor
 			this.xMacro = 0;
 			this.handlerStart = 0;
 			this.handlerEnd = 9;
-			this.RowHolder = new string[20][];
-			this.BookHolder = new string[10, 20][];
-			this.debuglimit = 19;
+			this.RowHolder = new Macro[20];
+			this.BookHolder = new Macro[10, 20];
+			this.debuglimit = 39;
 			this.copiedbookname = "";
-			this.ATmenu = new ToolStripMenuItem();
-			this.ATObject = new Dictionary<string, string>();
 			this.CurrentLine = -1;
 			this.InternalClipboardMethod = "";
 			this.SomethingEdited = false;
+			Log("Constructor: before Resizer/Regex");
+			Log("Constructor: before Resizer/Regex");
 			this.rs = new Resizer();
-			this.ATReadable = new Regex("\\xFD(.{4})\\xFD");
-			this.ATWritable = new Regex("\\<(.{8})\\|[^<>]+\\>");
 			this.lfs = new Regex("\\r|\\n");
-			this.Evaluation = new Assessment();
-			this.SearchResults = new Assessment();
-			this.MacroMap = new MacroMapForm();
+			this.atEncoder = new AutoTranslateEncoder();
+			this.fileManager = new MacroFileManager(this.atEncoder);
+			this.variableEngine = new VariableSubstitutionEngine();
+			this.Evaluation = null;
+			this.SearchResults = null;
+			this.MacroMap = null;
+			Log("Constructor: before InitializeComponent");
 			this.InitializeComponent();
-		}
-
-		// Token: 0x0600003D RID: 61 RVA: 0x00003604 File Offset: 0x00001804
-		public string KillZero(int book, int row)
-		{
-			bool flag = book == 0;
-			string result;
-			if (flag)
-			{
-				bool flag2 = row == 0;
-				if (flag2)
-				{
-					result = "";
-				}
-				else
-				{
-					result = row.ToString();
-				}
-			}
-			else
-			{
-				result = Conversions.ToString(book) + Conversions.ToString(row);
-			}
-			return result;
-		}
-
-		// Token: 0x0600003E RID: 62 RVA: 0x0000364C File Offset: 0x0000184C
-		public string TenToZero(int ten)
-		{
-			bool flag = ten != 10;
-			string result;
-			if (flag)
-			{
-				result = ten.ToString();
-			}
-			else
-			{
-				result = "0";
-			}
-			return result;
+			Log("Constructor: done");
 		}
 
 		// Token: 0x0600003F RID: 63 RVA: 0x0000367C File Offset: 0x0000187C
@@ -116,25 +84,6 @@ namespace MacroEditor
 			this.xMacro = m;
 			this.Rows[r].PerformClick();
 			return true;
-		}
-
-		// Token: 0x06000040 RID: 64 RVA: 0x000036BC File Offset: 0x000018BC
-		public string AsMacro(int m)
-		{
-			bool flag = m > 9;
-			checked
-			{
-				string result;
-				if (flag)
-				{
-					result = "Alt " + Conversions.ToString(m - 9);
-				}
-				else
-				{
-					result = "Ctl " + Conversions.ToString(m + 1);
-				}
-				return result;
-			}
 		}
 
 		// Token: 0x06000041 RID: 65 RVA: 0x00003700 File Offset: 0x00001900
@@ -151,165 +100,11 @@ namespace MacroEditor
 			return true;
 		}
 
-		// Token: 0x06000042 RID: 66 RVA: 0x0000375C File Offset: 0x0000195C
-		public bool ParseAT()
-		{
-			FFXIATPhraseLoader ffxiatphraseLoader = new FFXIATPhraseLoader();
-			FFXIATPhrase[] atphrases = ffxiatphraseLoader.ATPhrases;
-			ToolStripMenuItem toolStripMenuItem = (ToolStripMenuItem)this.ATmenu.DropDownItems.Add("test");
-			checked
-			{
-				int num = atphrases.Count<FFXIATPhrase>() - 1;
-				for (int i = 0; i <= num; i++)
-				{
-					bool flag = atphrases[i].value.Trim().Length == 0;
-					if (!flag)
-					{
-						bool flag2 = Operators.CompareString(atphrases[i].value.Substring(0, 1), "【", false) == 0;
-						if (flag2)
-						{
-							toolStripMenuItem = (ToolStripMenuItem)this.ATmenu.DropDownItems.Add(atphrases[i].value);
-						}
-						else
-						{
-							ToolStripMenuItem toolStripMenuItem2 = (ToolStripMenuItem)toolStripMenuItem.DropDownItems.Add(atphrases[i].value);
-							toolStripMenuItem2.Tag = atphrases[i].ToString();
-							this.ATObject.Add(atphrases[i].ToString().Substring(1, 8), atphrases[i].value);
-							toolStripMenuItem2.Click += this.ATPhrase_Click;
-						}
-					}
-				}
-				this.ATmenu.Text = "Auto-Translate";
-				this.MenuText.Items.Add(this.ATmenu);
-				return true;
-			}
-		}
-
-		// Token: 0x06000043 RID: 67 RVA: 0x000038B4 File Offset: 0x00001AB4
-		public string ATWriter(string macroline)
-		{
-			return this.ATWritable.Replace(this.lfs.Replace(macroline, ""), (Match found) => this.ATEncode(found.Groups[1].ToString()));
-		}
-
 		// Token: 0x06000044 RID: 68 RVA: 0x000038F0 File Offset: 0x00001AF0
 		public bool WriteFile(int Book, int Row)
 		{
-			string text = this.macropath + "\\mcr" + this.KillZero(Book, Row) + ".dat";
-			bool flag = File.Exists(text);
-			byte[] sourceArray;
-			if (flag)
-			{
-				try
-				{
-					sourceArray = File.ReadAllBytes(text);
-				}
-				catch (Exception ex)
-				{
-					Interaction.MsgBox("Cannot read " + text + ".", MsgBoxStyle.OkOnly, null);
-					return false;
-				}
-			}
-			else
-			{
-				byte[] array = new byte[8];
-				array[0] = 1;
-				sourceArray = array;
-			}
-			StringBuilder stringBuilder = new StringBuilder();
-			int num = this.debuglimit;
-			checked
-			{
-				for (int i = 0; i <= num; i++)
-				{
-					this.MacroPreserved[Book, Row, i] = (string[])this.MacroContainer[Book, Row, i].Clone();
-					stringBuilder.Append(this.fill("", 4, "\0"));
-					int num2 = 1;
-					do
-					{
-						stringBuilder.Append(this.fill(this.ATWriter(this.MacroContainer[Book, Row, i][num2]), 61, "\0"));
-						num2++;
-					}
-					while (num2 <= 6);
-					stringBuilder.Append(this.fill(this.MacroContainer[Book, Row, i][0].Substring(0, Math.Min(this.MacroContainer[Book, Row, i][0].Length, 8)), 9, "\0"));
-					stringBuilder.Append('\0');
-				}
-				bool flag2 = stringBuilder.Length != 7600;
-				bool result;
-				if (flag2)
-				{
-					Interaction.MsgBox("Compilation of " + this.KillZero(Book, Row) + "failed.", MsgBoxStyle.OkOnly, null);
-					result = false;
-				}
-				else
-				{
-					byte[] bytes = Encoding.Default.GetBytes(stringBuilder.ToString());
-					MD5CryptoServiceProvider md5CryptoServiceProvider = new MD5CryptoServiceProvider();
-					byte[] array2 = md5CryptoServiceProvider.ComputeHash(bytes);
-					StringBuilder stringBuilder2 = new StringBuilder();
-					int num3 = array2.Length - 1;
-					for (int j = 0; j <= num3; j++)
-					{
-						stringBuilder2.Append(Strings.Chr((int)array2[j]));
-					}
-					byte[] array3 = new byte[8 + array2.Length + bytes.Length - 1 + 1];
-					Array.Copy(sourceArray, 0, array3, 0, 8);
-					Array.Copy(array2, 0, array3, 8, 16);
-					Array.Copy(bytes, 0, array3, 24, bytes.Length);
-					try
-					{
-						File.WriteAllBytes(text, array3);
-						result = true;
-					}
-					catch (Exception ex2)
-					{
-						result = false;
-					}
-				}
-				return result;
-			}
-		}
-
-		// Token: 0x06000045 RID: 69 RVA: 0x00003B70 File Offset: 0x00001D70
-		public string ATDecode(string phrase)
-		{
-			string text = "";
-			foreach (char value in phrase)
-			{
-				text += Convert.ToString(Convert.ToInt32(value), 16).PadLeft(2, '0');
-			}
-			string result;
-			try
-			{
-				result = string.Concat(new string[]
-				{
-					"<",
-					text,
-					"|",
-					this.ATObject[text.ToUpper()],
-					">"
-				});
-			}
-			catch (Exception ex)
-			{
-				result = "<" + text + "|UnknownItem>";
-			}
-			return result;
-		}
-
-		// Token: 0x06000046 RID: 70 RVA: 0x00003C34 File Offset: 0x00001E34
-		public string ATEncode(string phrase)
-		{
-			phrase = "FD" + phrase + "FD";
-			string text = "";
-			checked
-			{
-				int num = phrase.Length - 2;
-				for (int i = 0; i <= num; i += 2)
-				{
-					text += Convert.ToChar(Convert.ToUInt32(phrase.Substring(i, 2), 16)).ToString();
-				}
-				return text;
-			}
+			Log("WriteFile: book=" + Book + " row=" + Row);
+			return this.fileManager.WriteRow(this.macropath, Book, Row, this.Books[Book].Rows[Row], this.BooksPreserved[Book].Rows[Row], 19);
 		}
 
 		// Token: 0x06000047 RID: 71 RVA: 0x00003C98 File Offset: 0x00001E98
@@ -324,86 +119,35 @@ namespace MacroEditor
 			}
 			else
 			{
-				Interaction.MsgBox("Clipboard does not contain regular text.", MsgBoxStyle.OkOnly, null);
+				MessageBox.Show("Clipboard does not contain regular text.", "Macro Editor", MessageBoxButtons.OK);
 				result = "";
 			}
 			return result;
 		}
 
-		// Token: 0x06000048 RID: 72 RVA: 0x00003CE8 File Offset: 0x00001EE8
-		public bool verifyclipboard(string pasteType, Array a)
-		{
-			bool flag = NewLateBinding.LateIndexGet(a, new object[]
-			{
-				0
-			}, null).ToString().Trim().StartsWith("Type: " + pasteType) & NewLateBinding.LateIndexGet(a, new object[]
-			{
-				checked(a.Length - 1)
-			}, null).ToString().Trim().StartsWith("End" + pasteType);
-			bool result;
-			if (flag)
-			{
-				result = true;
-			}
-			else
-			{
-				Interaction.MsgBox("Clipboard does not contain a " + pasteType + ".", MsgBoxStyle.OkOnly, null);
-				result = false;
-			}
-			return result;
-		}
-
-		// Token: 0x06000049 RID: 73 RVA: 0x00003D84 File Offset: 0x00001F84
-		public string fill(string str, int rpad, string padder = "\0")
-		{
-			return str + new string('\0', checked(rpad - str.Length));
-		}
-
 		// Token: 0x0600004A RID: 74 RVA: 0x00003DAC File Offset: 0x00001FAC
 		public bool ReadMacroFile(int mbook, int mset, string filename, bool PreserveMacros)
 		{
-			byte[] array = File.ReadAllBytes(filename);
-			string text = "";
+			Log("ReadMacroFile: " + filename);
+			MacroRow row = this.fileManager.ReadMacroRow(filename);
+			if (row == null)
+			{
+				return false;
+			}
 			checked
 			{
-				int num = array.Length - 1;
-				for (int i = 24; i <= num; i++)
-				{
-					text += Conversions.ToString(Convert.ToChar(array[i]));
-				}
-				text = text.Replace('\0', '\n');
 				int num2 = 0;
-				bool result = true;
-				int num3 = text.Length - 1;
-				for (int j = 0; j <= num3; j += 380)
+				do
 				{
-					int num4 = 1;
-					this.MacroContainer[mbook, mset, num2] = new string[]
-					{
-						this.lfs.Replace(text.Substring(j + 370, 8).Trim(), ""),
-						"",
-						"",
-						"",
-						"",
-						"",
-						""
-					};
+					this.Books[mbook].Rows[mset].Macros[num2] = row.Macros[num2];
 					if (PreserveMacros)
 					{
-						this.MacroPreserved[mbook, mset, num2] = (string[])this.MacroContainer[mbook, mset, num2].Clone();
+						this.BooksPreserved[mbook].Rows[mset].Macros[num2] = this.Books[mbook].Rows[mset].Macros[num2].Clone();
 					}
-					int num5 = 0;
-					do
-					{
-						this.MacroContainer[mbook, mset, num2][num4] = this.ATReadable.Replace(this.lfs.Replace(text.Substring(j + num5, 60).Trim(), ""), (Match found) => this.ATDecode(found.Groups[1].ToString()));
-						this.MacroPreserved[mbook, mset, num2][num4] = Conversions.ToString(this.MacroContainer[mbook, mset, num2][num4].Clone());
-						num4++;
-						num5 += 61;
-					}
-					while (num5 <= 360);
 					num2++;
 				}
-				return result;
+				while (num2 <= 19);
+				return true;
 			}
 		}
 
@@ -411,49 +155,21 @@ namespace MacroEditor
 		public bool OpenATMenu()
 		{
 			bool flag = !this.MenuMacro.Enabled;
-			checked
+			if (flag)
 			{
-				bool result;
-				if (flag)
-				{
-					result = false;
-				}
-				else
-				{
-					TextBox textBox = this.Lines[this.CurrentLine];
-					bool flag2 = textBox.SelectionLength == 0;
-					if (flag2)
-					{
-						int selectionStart = textBox.SelectionStart;
-						int num = textBox.Text.Substring(0, textBox.SelectionStart).LastIndexOf(" ") + 1;
-						textBox.Select(num, selectionStart - num);
-					}
-					string selectedText = textBox.SelectedText;
-					int num2 = this.ATmenu.DropDownItems.Count - 1;
-					for (int i = 0; i <= num2; i++)
-					{
-						ToolStripMenuItem toolStripMenuItem = (ToolStripMenuItem)this.ATmenu.DropDownItems[i];
-						toolStripMenuItem.Visible = false;
-						int num3 = toolStripMenuItem.DropDownItems.Count - 1;
-						for (int j = 0; j <= num3; j++)
-						{
-							ToolStripMenuItem toolStripMenuItem2 = (ToolStripMenuItem)toolStripMenuItem.DropDownItems[j];
-							bool flag3 = Operators.CompareString(toolStripMenuItem2.Text.Substring(0, Math.Min(selectedText.Length, toolStripMenuItem2.Text.Length)).ToLower(), selectedText.ToLower(), false) == 0;
-							if (flag3)
-							{
-								toolStripMenuItem.Visible = true;
-								toolStripMenuItem2.Visible = true;
-							}
-							else
-							{
-								toolStripMenuItem2.Visible = false;
-							}
-						}
-					}
-					result = true;
-				}
-				return result;
+				return false;
 			}
+			TextBox textBox = this.Lines[this.CurrentLine];
+			bool flag2 = textBox.SelectionLength == 0;
+			if (flag2)
+			{
+				int selectionStart = textBox.SelectionStart;
+				int num = textBox.Text.Substring(0, textBox.SelectionStart).LastIndexOf(" ") + 1;
+				textBox.Select(num, selectionStart - num);
+			}
+			string selectedText = textBox.SelectedText;
+			this.atEncoder.FilterMenu(selectedText);
+			return true;
 		}
 
 		// Token: 0x0600004C RID: 76 RVA: 0x000040D8 File Offset: 0x000022D8
@@ -506,7 +222,7 @@ namespace MacroEditor
 		// Token: 0x0600004D RID: 77 RVA: 0x000041DC File Offset: 0x000023DC
 		public object UpdateStatusBar(string h, string d = "")
 		{
-			bool flag = Operators.CompareString(h, "0", false) != 0;
+			bool flag = !string.Equals(h, "0", StringComparison.Ordinal);
 			if (flag)
 			{
 				this.StatusH.Text = h;
@@ -710,6 +426,7 @@ namespace MacroEditor
 			{
 				this.GetFFXIDirectory();
 			}
+			this.Activate();
 		}
 
 		// Token: 0x06000051 RID: 81 RVA: 0x00004704 File Offset: 0x00002904
@@ -740,7 +457,7 @@ namespace MacroEditor
 					button.Tag = num;
 					button.Font = this.Font;
 					button.Text = (num + 1).ToString();
-					button.Name = "Row" + Conversions.ToString(num);
+					button.Name = "Row" + num.ToString();
 					button.BackColor = this.BackColor;
 					this.Rows.Add(num, button);
 					button.Click += this.Row_Click;
@@ -757,20 +474,20 @@ namespace MacroEditor
 					button2.Width = this.bWidth;
 					button2.Tag = num2;
 					button2.BackColor = this.BackColor;
-					button2.Name = "Ctrl" + Conversions.ToString(num2);
+					button2.Name = "Ctrl" + num2.ToString();
 					bool flag = num2 <= 9;
 					if (flag)
 					{
 						button2.Left = 195 + (num2 + 1) * (this.bWidth + 10);
 						button2.Top = 40;
-						button2.Text = "C" + this.TenToZero(num2 + 1);
+						button2.Text = "C" + this.FormatMacroIndex(num2 + 1);
 						this.Ctrls.Add(num2, button2);
 					}
 					else
 					{
 						button2.Left = 195 + (num2 + 1 - 10) * (this.bWidth + 10);
 						button2.Top = this.bHeight + 50;
-						button2.Text = "A" + this.TenToZero(num2 - 9);
+						button2.Text = "A" + this.FormatMacroIndex(num2 - 9);
 						this.Ctrls.Add(num2, button2);
 					}
 					button2.Click += this.Control_Click;
@@ -829,7 +546,7 @@ namespace MacroEditor
 					textBox.Top = this.Rows[3 + num3].Top;
 					textBox.Tag = num3;
 					textBox.Font = new Font(this.Font.FontFamily, 18f, this.Font.Style);
-					textBox.Name = "Lines" + Conversions.ToString(num3);
+					textBox.Name = "Lines" + num3.ToString();
 					this.Lines.Add(num3, textBox);
 					base.Controls.Add(textBox);
 					textBox.KeyDown += this.lines_KeyDown;
@@ -838,35 +555,18 @@ namespace MacroEditor
 					num3++;
 				}
 				while (num3 <= 6);
-				try
+				foreach (object obj in base.Controls)
 				{
-					foreach (object obj in base.Controls)
+					var control = (Control)obj;
+					bool flag3 = control is Button | control is ListBox;
+					if (flag3)
 					{
-						object objectValue = RuntimeHelpers.GetObjectValue(obj);
-						bool flag3 = objectValue is Button | objectValue is ListBox;
-						if (flag3)
-						{
-							NewLateBinding.LateSet(objectValue, null, "tabstop", new object[]
-							{
-								false
-							}, null, null);
-						}
-						bool flag4 = Conversions.ToBoolean(Operators.NotObject(Operators.CompareObjectEqual(NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null), "MainMenu", false)));
-						if (flag4)
-						{
-							NewLateBinding.LateSet(objectValue, null, "enabled", new object[]
-							{
-								false
-							}, null, null);
-						}
+						control.TabStop = false;
 					}
-				}
-				finally
-				{
-					IEnumerator enumerator;
-					if (enumerator is IDisposable)
+					bool flag4 = !object.Equals(control.Name, "MainMenu");
+					if (flag4)
 					{
-						(enumerator as IDisposable).Dispose();
+						control.Enabled = false;
 					}
 				}
 				this.File_SaveRow.Enabled = false;
@@ -874,7 +574,50 @@ namespace MacroEditor
 				this.StatusBar.Enabled = true;
 				this.StatusH.Enabled = true;
 				this.StatusD.Enabled = true;
-				this.ParseAT();
+				try
+				{
+					this.atEncoder.LoadPhrases();
+					this.MenuText.Items.Add(this.atEncoder.GetATMenu());
+				}
+				catch (Exception ex)
+				{
+					Log("AT phrase loading failed: " + ex.Message);
+				}
+				this.atEncoder.PhraseSelected += (phrase) => { this.Lines[this.CurrentLine].SelectedText = phrase; };
+
+				// Add "Apply to All Books" items to context menus
+				this.MenuRow.Items.Add(new ToolStripSeparator());
+				var menuRowBroadcast = new ToolStripMenuItem("Apply Page to All Books");
+				menuRowBroadcast.Click += this.BroadcastPage_Click;
+				this.MenuRow.Items.Add(menuRowBroadcast);
+
+				this.MenuMacro.Items.Add(new ToolStripSeparator());
+				var menuMacroBroadcast = new ToolStripMenuItem("Apply Macro to All Books");
+				menuMacroBroadcast.Click += this.BroadcastMacro_Click;
+				this.MenuMacro.Items.Add(menuMacroBroadcast);
+
+				this.MenuHandler.Items.Add(new ToolStripSeparator());
+				var menuHandlerBroadcast = new ToolStripMenuItem("Apply Ctrl/Alt Row to All Books");
+				menuHandlerBroadcast.Click += this.BroadcastCtrlAltRow_Click;
+				this.MenuHandler.Items.Add(menuHandlerBroadcast);
+
+				this.MenuText.Items.Add(new ToolStripMenuItem("Apply Line to All Books", null, this.BroadcastLine_Click));
+
+				// Add Export and Restore to File menu
+				var exportSeparator = new ToolStripSeparator();
+				var exportItem = new ToolStripMenuItem("Export to Folder...");
+				exportItem.Click += this.File_Export_Click;
+				var exportAllItem = new ToolStripMenuItem("Export to All Characters");
+				exportAllItem.Click += this.File_ExportAll_Click;
+				var restoreItem = new ToolStripMenuItem("Restore from Backup...");
+				restoreItem.Click += this.File_RestoreBackup_Click;
+				// Insert before Exit (last item in FileMenu)
+				int exitIndex = this.FileMenu.DropDownItems.IndexOf(this.File_Exit);
+				this.FileMenu.DropDownItems.Insert(exitIndex, exportSeparator);
+				this.FileMenu.DropDownItems.Insert(exitIndex + 1, exportItem);
+				this.FileMenu.DropDownItems.Insert(exitIndex + 2, exportAllItem);
+				this.FileMenu.DropDownItems.Insert(exitIndex + 3, restoreItem);
+
 				this.rs.FindAllControls(this);
 				ListBox contents = this.Contents;
 				this.Warning.Top = contents.Top;
@@ -884,16 +627,11 @@ namespace MacroEditor
 			}
 		}
 
-		// Token: 0x06000052 RID: 82 RVA: 0x00004EB0 File Offset: 0x000030B0
-		private void ATPhrase_Click(object sender, EventArgs e)
-		{
-			this.Lines[this.CurrentLine].SelectedText = Conversions.ToString(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
-		}
-
 		// Token: 0x06000053 RID: 83 RVA: 0x00004EE4 File Offset: 0x000030E4
 		private void Lines_TextChanged(object sender, EventArgs e)
 		{
-			bool flag = Operators.ConditionalCompareObjectEqual(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null), 0, false);
+			var textBox = (TextBox)sender;
+			bool flag = object.Equals(textBox.Tag, 0);
 			checked
 			{
 				if (flag)
@@ -902,35 +640,29 @@ namespace MacroEditor
 					bool flag2 = this.xMacro < 10;
 					if (flag2)
 					{
-						this.Ctrls[this.xMacro].Text = "C" + this.TenToZero(this.xMacro + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+						this.Ctrls[this.xMacro].Text = "C" + this.FormatMacroIndex(this.xMacro + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
 					else
 					{
-						this.Ctrls[this.xMacro].Text = "A" + this.TenToZero(this.xMacro - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+						this.Ctrls[this.xMacro].Text = "A" + this.FormatMacroIndex(this.xMacro - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
-					bool flag3 = Operators.ConditionalCompareObjectGreater(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null), null, "length", new object[0], null, null, null), 8, false);
+					bool flag3 = textBox.Text.Length > 8;
 					if (flag3)
 					{
-						int val = Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "selectionstart", new object[0], null, null, null));
-						NewLateBinding.LateSet(sender, null, "text", new object[]
-						{
-							NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null).ToString().Substring(0, 8)
-						}, null, null);
-						NewLateBinding.LateSet(sender, null, "selectionstart", new object[]
-						{
-							Math.Min(val, 8)
-						}, null, null);
+						int val = textBox.SelectionStart;
+						textBox.Text = textBox.Text.Substring(0, 8);
+						textBox.SelectionStart = Math.Min(val, 8);
 					}
 				}
 				this.SomethingEdited = true;
-				bool flag4 = Strings.Trim(Conversions.ToString(NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null))).Length == 0;
+				bool flag4 = textBox.Text.Trim().Length == 0;
 				if (flag4)
 				{
-					this.MacroContainer[this.xBook, this.xRow, this.xMacro][Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null))] = "";
+					this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro][Convert.ToInt32(textBox.Tag)] = "";
 				}
 				else
 				{
-					this.MacroContainer[this.xBook, this.xRow, this.xMacro][Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null))] = Conversions.ToString(NewLateBinding.LateGet(sender, null, "text", new object[0], null, null, null));
+					this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro][Convert.ToInt32(textBox.Tag)] = textBox.Text;
 				}
 			}
 		}
@@ -938,29 +670,24 @@ namespace MacroEditor
 		// Token: 0x06000054 RID: 84 RVA: 0x0000515C File Offset: 0x0000335C
 		private void lines_KeyDown(object sender, KeyEventArgs e)
 		{
+			var textBox = (TextBox)sender;
 			bool flag = e.KeyCode == Keys.F2 & this.CurrentLine > 0;
 			if (flag)
 			{
 				e.Handled = true;
-				this.MenuText_Opening(RuntimeHelpers.GetObjectValue(sender), new CancelEventArgs());
-				this.MenuText.Show(new Point(Conversions.ToInteger(Operators.AddObject(Operators.AddObject(base.Left, NewLateBinding.LateGet(sender, null, "left", new object[0], null, null, null)), NewLateBinding.LateGet(sender, null, "width", new object[0], null, null, null))), Conversions.ToInteger(Operators.AddObject(base.Top, NewLateBinding.LateGet(sender, null, "top", new object[0], null, null, null)))));
+				this.MenuText_Opening(sender, new CancelEventArgs());
+				this.MenuText.Show(new Point(Convert.ToInt32(base.Left) + textBox.Left + textBox.Width, Convert.ToInt32(base.Top) + textBox.Top));
 			}
 			else
 			{
 				bool flag2 = e.KeyCode == Keys.Return & this.CurrentLine < 6;
 				if (flag2)
 				{
-					bool flag3 = Operators.ConditionalCompareObjectGreater(NewLateBinding.LateGet(sender, null, "selectionlength", new object[0], null, null, null), 0, false);
+					bool flag3 = textBox.SelectionLength > 0;
 					if (flag3)
 					{
-						NewLateBinding.LateSet(sender, null, "selectionstart", new object[]
-						{
-							Operators.AddObject(NewLateBinding.LateGet(sender, null, "selectionstart", new object[0], null, null, null), NewLateBinding.LateGet(sender, null, "selectionlength", new object[0], null, null, null))
-						}, null, null);
-						NewLateBinding.LateSet(sender, null, "selectionlength", new object[]
-						{
-							0
-						}, null, null);
+						textBox.SelectionStart = textBox.SelectionStart + textBox.SelectionLength;
+						textBox.SelectionLength = 0;
 						e.SuppressKeyPress = true;
 					}
 					else
@@ -986,13 +713,10 @@ namespace MacroEditor
 						bool flag6 = e.KeyCode == Keys.Escape;
 						if (flag6)
 						{
-							bool flag7 = Operators.ConditionalCompareObjectGreater(NewLateBinding.LateGet(sender, null, "selectionlength", new object[0], null, null, null), 0, false);
+							bool flag7 = textBox.SelectionLength > 0;
 							if (flag7)
 							{
-								NewLateBinding.LateSet(sender, null, "selectionlength", new object[]
-								{
-									0
-								}, null, null);
+								textBox.SelectionLength = 0;
 								e.SuppressKeyPress = true;
 							}
 							else
@@ -1017,7 +741,7 @@ namespace MacroEditor
 		// Token: 0x06000055 RID: 85 RVA: 0x000053E1 File Offset: 0x000035E1
 		private void Lines_GotFocus(object sender, EventArgs e)
 		{
-			this.CurrentLine = Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			this.CurrentLine = Convert.ToInt32(((TextBox)sender).Tag);
 		}
 
 		// Token: 0x06000056 RID: 86 RVA: 0x00005404 File Offset: 0x00003604
@@ -1046,52 +770,35 @@ namespace MacroEditor
 		// Token: 0x06000058 RID: 88 RVA: 0x000054B8 File Offset: 0x000036B8
 		private void Row_Click(object sender, EventArgs e)
 		{
-			this.xRow = Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			this.xRow = Convert.ToInt32(((Control)sender).Tag);
 			int num = 0;
 			checked
 			{
 				do
 				{
-					string text = this.MacroContainer[this.xBook, this.xRow, num][0].Trim() + " ";
+					string text = this.Books[this.xBook].Rows[this.xRow].Macros[num][0].Trim() + " ";
 					bool flag = num < 10;
 					if (flag)
 					{
-						this.Ctrls[num].Text = "C" + this.TenToZero(num + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+						this.Ctrls[num].Text = "C" + this.FormatMacroIndex(num + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
 					else
 					{
-						this.Ctrls[num].Text = "A" + this.TenToZero(num - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+						this.Ctrls[num].Text = "A" + this.FormatMacroIndex(num - 9) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 					}
 					num++;
 				}
 				while (num <= 19);
-				try
+				foreach (object obj in base.Controls)
 				{
-					foreach (object obj in base.Controls)
+					var control = (Control)obj;
+					bool flag2 = control is Button & control.Name.StartsWith("Row");
+					if (flag2)
 					{
-						object objectValue = RuntimeHelpers.GetObjectValue(obj);
-						bool flag2 = objectValue is Button & NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null).ToString().StartsWith("Row");
-						if (flag2)
-						{
-							NewLateBinding.LateSet(objectValue, null, "backcolor", new object[]
-							{
-								this.BackColor
-							}, null, null);
-						}
+						control.BackColor = this.BackColor;
 					}
 				}
-				finally
-				{
-					IEnumerator enumerator;
-					if (enumerator is IDisposable)
-					{
-						(enumerator as IDisposable).Dispose();
-					}
-				}
-				NewLateBinding.LateSet(sender, null, "BackColor", new object[]
-				{
-					Color.LightGray
-				}, null, null);
+				((Control)sender).BackColor = Color.LightGray;
 				this.Ctrls[this.xMacro].PerformClick();
 			}
 		}
@@ -1099,48 +806,32 @@ namespace MacroEditor
 		// Token: 0x06000059 RID: 89 RVA: 0x0000568C File Offset: 0x0000388C
 		private void Control_MouseEnter(object sender, EventArgs e)
 		{
-			this.ControlTip.SetToolTip((Control)sender, string.Join("\n", this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null))]));
+			this.ControlTip.SetToolTip((Control)sender, string.Join("\n", this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(((Control)sender).Tag)].ToArray()));
 		}
 
 		// Token: 0x0600005A RID: 90 RVA: 0x000056E8 File Offset: 0x000038E8
 		private void Control_Click(object sender, EventArgs e)
 		{
 			bool somethingEdited = this.SomethingEdited;
-			this.xMacro = Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null));
+			int senderTag = Convert.ToInt32(((Control)sender).Tag);
+			this.xMacro = senderTag;
 			checked
 			{
-				int num = this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "Tag", new object[0], null, null, null))].Length - 1;
+				int num = this.Books[this.xBook].Rows[this.xRow].Macros[senderTag].ToArray().Length - 1;
 				for (int i = 0; i <= num; i++)
 				{
-					this.Lines[i].Text = this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(NewLateBinding.LateGet(sender, null, "Tag", new object[0], null, null, null))][i];
+					this.Lines[i].Text = this.Books[this.xBook].Rows[this.xRow].Macros[senderTag][i];
 				}
-				try
+				foreach (object obj in base.Controls)
 				{
-					foreach (object obj in base.Controls)
+					var control = (Control)obj;
+					bool flag = control is Button & !control.Name.StartsWith("Row");
+					if (flag)
 					{
-						object objectValue = RuntimeHelpers.GetObjectValue(obj);
-						bool flag = objectValue is Button & !NewLateBinding.LateGet(objectValue, null, "name", new object[0], null, null, null).ToString().StartsWith("Row");
-						if (flag)
-						{
-							NewLateBinding.LateSet(objectValue, null, "backcolor", new object[]
-							{
-								this.BackColor
-							}, null, null);
-						}
+						control.BackColor = this.BackColor;
 					}
 				}
-				finally
-				{
-					IEnumerator enumerator;
-					if (enumerator is IDisposable)
-					{
-						(enumerator as IDisposable).Dispose();
-					}
-				}
-				NewLateBinding.LateSet(sender, null, "BackColor", new object[]
-				{
-					Color.LightGray
-				}, null, null);
+				((Control)sender).BackColor = Color.LightGray;
 				this.SomethingEdited = somethingEdited;
 			}
 		}
@@ -1168,7 +859,8 @@ namespace MacroEditor
 		// Token: 0x0600005D RID: 93 RVA: 0x000058F4 File Offset: 0x00003AF4
 		private void RowHandler_Mousedown(object sender, MouseEventArgs e)
 		{
-			bool flag = Operators.ConditionalCompareObjectEqual(NewLateBinding.LateGet(sender, null, "name", new object[0], null, null, null), "LeftHandler", false);
+			string senderName = ((Control)sender).Name;
+			bool flag = object.Equals(senderName, "LeftHandler");
 			checked
 			{
 				if (flag)
@@ -1179,7 +871,7 @@ namespace MacroEditor
 				}
 				else
 				{
-					bool flag2 = Operators.ConditionalCompareObjectEqual(NewLateBinding.LateGet(sender, null, "name", new object[0], null, null, null), "RightHandler", false);
+					bool flag2 = object.Equals(senderName, "RightHandler");
 					if (flag2)
 					{
 						this.handlerStart = 10;
@@ -1188,24 +880,24 @@ namespace MacroEditor
 					}
 					else
 					{
-						bool flag3 = Operators.ConditionalCompareObjectEqual(NewLateBinding.LateGet(sender, null, "name", new object[0], null, null, null), "FlipHandler", false);
+						bool flag3 = object.Equals(senderName, "FlipHandler");
 						if (flag3)
 						{
 							this.handlerStart = 0;
 							this.handlerEnd = 0;
-							string[][] array = new string[20][];
+							Macro[] array = new Macro[20];
 							int num = 0;
 							do
 							{
-								array[num] = this.MacroContainer[this.xBook, this.xRow, num];
-								this.MacroContainer[this.xBook, this.xRow, num] = this.MacroContainer[this.xBook, this.xRow, num + 10];
+								array[num] = this.Books[this.xBook].Rows[this.xRow].Macros[num];
+								this.Books[this.xBook].Rows[this.xRow].Macros[num] = this.Books[this.xBook].Rows[this.xRow].Macros[num + 10];
 								num++;
 							}
 							while (num <= 9);
 							int num2 = 10;
 							do
 							{
-								this.MacroContainer[this.xBook, this.xRow, num2] = array[num2 - 10];
+								this.Books[this.xBook].Rows[this.xRow].Macros[num2] = array[num2 - 10];
 								num2++;
 							}
 							while (num2 <= 19);
@@ -1220,20 +912,20 @@ namespace MacroEditor
 		// Token: 0x0600005E RID: 94 RVA: 0x00005A98 File Offset: 0x00003C98
 		private void MenuMacro_Paste_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
-			this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(objectValue)] = this.Macroholder;
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
+			this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)] = this.Macroholder.Clone();
 			string text = this.Macroholder[0] + " ";
-			bool flag = Operators.ConditionalCompareObjectLess(objectValue, 10, false);
+			bool flag = Convert.ToInt32(objectValue) < 10;
 			if (flag)
 			{
-				this.Ctrls[Conversions.ToInteger(objectValue)].Text = "C" + this.TenToZero(Conversions.ToInteger(Operators.AddObject(objectValue, 1))) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+				this.Ctrls[Convert.ToInt32(objectValue)].Text = "C" + this.FormatMacroIndex(Convert.ToInt32(objectValue) + 1) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 			}
 			else
 			{
-				this.Ctrls[Conversions.ToInteger(objectValue)].Text = "A" + this.TenToZero(Conversions.ToInteger(Operators.SubtractObject(objectValue, 9))) + "\n" + text.Substring(0, Math.Min(5, text.Length));
+				this.Ctrls[Convert.ToInt32(objectValue)].Text = "A" + this.FormatMacroIndex((Convert.ToInt32(objectValue) - 9)) + "\n" + text.Substring(0, Math.Min(5, text.Length));
 			}
 			this.SomethingEdited = true;
-			this.Ctrls[Conversions.ToInteger(objectValue)].PerformClick();
+			this.Ctrls[Convert.ToInt32(objectValue)].PerformClick();
 		}
 
 		// Token: 0x0600005F RID: 95 RVA: 0x00005BF8 File Offset: 0x00003DF8
@@ -1249,7 +941,7 @@ namespace MacroEditor
 					{
 						try
 						{
-							this.MacroContainer[this.cbook, num, num2] = this.BookHolder[num, num2];
+							this.Books[this.cbook].Rows[num].Macros[num2] = this.BookHolder[num, num2].Clone();
 						}
 						catch (Exception ex)
 						{
@@ -1258,11 +950,11 @@ namespace MacroEditor
 							{
 								try
 								{
-									this.MacroContainer[this.cbook, num, num2][num3] = this.BookHolder[num, num2][num3];
+									this.Books[this.cbook].Rows[num].Macros[num2][num3] = this.BookHolder[num, num2][num3];
 								}
 								catch (Exception ex2)
 								{
-									this.MacroContainer[this.cbook, num, num2][num3] = "";
+									this.Books[this.cbook].Rows[num].Macros[num2][num3] = "";
 								}
 								num3++;
 							}
@@ -1294,7 +986,7 @@ namespace MacroEditor
 					int num2 = 0;
 					do
 					{
-						this.MacroContainer[this.cbook, num, num2] = (string[])this.MacroPreserved[this.cbook, num, num2].Clone();
+						this.Books[this.cbook].Rows[num].Macros[num2] = this.BooksPreserved[this.cbook].Rows[num].Macros[num2].Clone();
 						num2++;
 					}
 					while (num2 <= 19);
@@ -1317,7 +1009,7 @@ namespace MacroEditor
 					int num2 = 0;
 					do
 					{
-						this.BookHolder[num, num2] = this.MacroContainer[this.cbook, num, num2];
+						this.BookHolder[num, num2] = this.Books[this.cbook].Rows[num].Macros[num2].Clone();
 						num2++;
 					}
 					while (num2 <= 19);
@@ -1325,7 +1017,7 @@ namespace MacroEditor
 				}
 				while (num <= 9);
 				this.InternalClipboardMethod = "Book";
-				this.copiedbookname = Conversions.ToString(this.Contents.Items[this.cbook]);
+				this.copiedbookname = this.Contents.Items[this.cbook].ToString();
 				this.Rows[this.xRow].PerformClick();
 			}
 		}
@@ -1333,8 +1025,8 @@ namespace MacroEditor
 		// Token: 0x06000062 RID: 98 RVA: 0x00005E43 File Offset: 0x00004043
 		private void MenuBook_Cut_Click(object sender, EventArgs e)
 		{
-			this.MenuBook_Copy_Click(RuntimeHelpers.GetObjectValue(sender), e);
-			this.MenuBook_Clear_Click(RuntimeHelpers.GetObjectValue(sender), e);
+			this.MenuBook_Copy_Click(sender, e);
+			this.MenuBook_Clear_Click(sender, e);
 		}
 
 		// Token: 0x06000063 RID: 99 RVA: 0x00005E64 File Offset: 0x00004064
@@ -1348,16 +1040,7 @@ namespace MacroEditor
 					int num2 = 0;
 					do
 					{
-						this.MacroContainer[this.cbook, num, num2] = new string[]
-						{
-							"",
-							"",
-							"",
-							"",
-							"",
-							"",
-							""
-						};
+						this.Books[this.cbook].Rows[num].Macros[num2] = new Macro();
 						num2++;
 					}
 					while (num2 <= 19);
@@ -1374,7 +1057,7 @@ namespace MacroEditor
 		{
 			string[][] array = new string[21][];
 			string[] array2 = new string[12];
-			array2[0] = Conversions.ToString(Operators.ConcatenateObject("Type: Book ", this.Contents.Items[this.cbook]));
+			array2[0] = "Type: Book " + this.Contents.Items[this.cbook].ToString();
 			int num = 0;
 			checked
 			{
@@ -1406,7 +1089,7 @@ namespace MacroEditor
 					int num2 = 0;
 					do
 					{
-						array[num][num2] = string.Join("\n", this.MacroContainer[this.cbook, num, num2]).TrimEnd(new char[0]);
+						array[num][num2] = string.Join("\n", this.Books[this.cbook].Rows[num].Macros[num2].ToArray()).TrimEnd(new char[0]);
 						num2++;
 					}
 					while (num2 <= 19);
@@ -1427,19 +1110,19 @@ namespace MacroEditor
 			string[] array;
 			if (flag)
 			{
-				array = Strings.Split(this.CleanClipBoard(), "\n\nRow, Macro:\n", -1, CompareMethod.Binary);
+				array = this.CleanClipBoard().Split(new string[] { "\n\nRow, Macro:\n" }, StringSplitOptions.None);
 			}
 			else
 			{
-				array = Strings.Split(clp, "\n\nRow, Macro:\n", -1, CompareMethod.Binary);
+				array = clp.Split(new string[] { "\n\nRow, Macro:\n" }, StringSplitOptions.None);
 			}
-			bool flag2 = !this.verifyclipboard("Book", array);
+			bool flag2 = !this.VerifyClipboardFormat("Book", array);
 			checked
 			{
 				if (!flag2)
 				{
 					this.Contents.SelectedIndexChanged -= this.Contents_SelectedIndexChanged;
-					bool flag3 = Operators.CompareString(array[0].Substring(0, 10), "Type: Book", false) == 0;
+					bool flag3 = string.Equals(array[0].Substring(0, 10), "Type: Book", StringComparison.Ordinal);
 					if (flag3)
 					{
 						this.Contents.Items[this.cbook] = array[0].Substring(11, Math.Min(10, array[0].Length - 11));
@@ -1448,20 +1131,11 @@ namespace MacroEditor
 						int num = 0;
 						do
 						{
-							string[] array2 = Strings.Split(array[num], "\n\nMacro:\n", -1, CompareMethod.Binary);
+							string[] array2 = array[num].Split(new string[] { "\n\nMacro:\n" }, StringSplitOptions.None);
 							int num2 = 0;
 							do
 							{
-								this.MacroContainer[this.xBook, num, num2] = new string[]
-								{
-									"",
-									"",
-									"",
-									"",
-									"",
-									"",
-									""
-								};
+								this.Books[this.xBook].Rows[num].Macros[num2] = new Macro();
 								string[] array3 = array2[num2].Split(new char[]
 								{
 									'\n'
@@ -1469,7 +1143,7 @@ namespace MacroEditor
 								int num3 = Math.Min(array3.Length - 1, 6);
 								for (int i = 0; i <= num3; i++)
 								{
-									this.MacroContainer[this.cbook, num, num2][i] = array3[i];
+									this.Books[this.cbook].Rows[num].Macros[num2][i] = array3[i];
 								}
 								num2++;
 							}
@@ -1488,51 +1162,47 @@ namespace MacroEditor
 		// Token: 0x06000066 RID: 102 RVA: 0x00006270 File Offset: 0x00004470
 		private void MenuMacro_Revert_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
-			this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(objectValue)] = (string[])this.MacroPreserved[this.xBook, this.xRow, Conversions.ToInteger(objectValue)].Clone();
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
+			this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)] = this.BooksPreserved[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)].Clone();
 			this.SomethingEdited = true;
-			this.Ctrls[Conversions.ToInteger(objectValue)].PerformClick();
+			this.Ctrls[Convert.ToInt32(objectValue)].PerformClick();
 		}
 
 		// Token: 0x06000067 RID: 103 RVA: 0x00006324 File Offset: 0x00004524
 		private void MenuMacro_Copy_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
-			this.Macroholder = this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(objectValue)];
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
+			this.Macroholder = this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)].Clone();
 			this.InternalClipboardMethod = "Macro";
-			this.Ctrls[Conversions.ToInteger(objectValue)].PerformClick();
+			this.Ctrls[Convert.ToInt32(objectValue)].PerformClick();
 		}
 
 		// Token: 0x06000068 RID: 104 RVA: 0x000063BA File Offset: 0x000045BA
 		private void MenuMacro_Cut_Click(object sender, EventArgs e)
 		{
-			this.MenuMacro_Copy_Click(RuntimeHelpers.GetObjectValue(sender), e);
-			this.MenuMacro_Clear_Click(RuntimeHelpers.GetObjectValue(sender), e);
+			this.MenuMacro_Copy_Click(sender, e);
+			this.MenuMacro_Clear_Click(sender, e);
 		}
 
 		// Token: 0x06000069 RID: 105 RVA: 0x000063DC File Offset: 0x000045DC
 		private void MenuMacro_Clear_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
-			this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(objectValue)] = new string[]
-			{
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				""
-			};
+			int macroIndex = Convert.ToInt32(((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag);
+			this.Books[this.xBook].Rows[this.xRow].Macros[macroIndex] = new Macro();
 			this.SomethingEdited = true;
-			this.Ctrls[Conversions.ToInteger(objectValue)].PerformClick();
+			// Update button text immediately
+			if (macroIndex < 10)
+				this.Ctrls[macroIndex].Text = "C" + this.FormatMacroIndex(macroIndex + 1);
+			else
+				this.Ctrls[macroIndex].Text = "A" + this.FormatMacroIndex(macroIndex - 9);
+			this.Ctrls[macroIndex].PerformClick();
 		}
 
 		// Token: 0x0600006A RID: 106 RVA: 0x000064A8 File Offset: 0x000046A8
 		private void MenuMacro_CopyClipboard_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
-			string text = "Type: Macro\n" + string.Join("\n", this.MacroContainer[this.xBook, this.xRow, Conversions.ToInteger(objectValue)]).TrimEnd(new char[0]) + "\nEndMacro (Please do not remove empty lines as they're part of the sharing format). If you experience problems pasting, please make sure to download an up to date version.";
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
+			string text = "Type: Macro\n" + string.Join("\n", this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)].ToArray()).TrimEnd(new char[0]) + "\nEndMacro (Please do not remove empty lines as they're part of the sharing format). If you experience problems pasting, please make sure to download an up to date version.";
 			Clipboard.SetText(text);
 		}
 
@@ -1542,7 +1212,7 @@ namespace MacroEditor
 			bool flag = x == -1;
 			if (flag)
 			{
-				x = Conversions.ToInteger(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+				x = Convert.ToInt32(((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag);
 			}
 			string[] array = this.CleanClipBoard().Split(new char[]
 			{
@@ -1553,20 +1223,11 @@ namespace MacroEditor
 			{
 				if (flag2)
 				{
-					this.MacroContainer[this.xBook, this.xRow, x] = new string[]
-					{
-						"",
-						"",
-						"",
-						"",
-						"",
-						"",
-						""
-					};
+					this.Books[this.xBook].Rows[this.xRow].Macros[x] = new Macro();
 					int num = Math.Min(array.Length - 2, 7);
 					for (int i = 1; i <= num; i++)
 					{
-						this.MacroContainer[this.xBook, this.xRow, x][i - 1] = array[i];
+						this.Books[this.xBook].Rows[this.xRow].Macros[x][i - 1] = array[i];
 					}
 				}
 				else
@@ -1574,7 +1235,7 @@ namespace MacroEditor
 					bool flag3 = array[0].StartsWith("Type: ");
 					if (flag3)
 					{
-						Interaction.MsgBox("Clipboard data contains " + array[0] + ", canceling paste to this macro.", MsgBoxStyle.OkOnly, null);
+						MessageBox.Show("Clipboard data contains " + array[0] + ", canceling paste to this macro.", "Macro Editor", MessageBoxButtons.OK);
 					}
 					else
 					{
@@ -1582,7 +1243,7 @@ namespace MacroEditor
 						if (flag4)
 						{
 							this.MenuMacro_Clear.PerformClick();
-							this.MacroContainer[this.xBook, this.xRow, x] = array;
+							this.Books[this.xBook].Rows[this.xRow].Macros[x] = Macro.FromArray(array);
 							this.SomethingEdited = true;
 						}
 						else
@@ -1595,39 +1256,22 @@ namespace MacroEditor
 								bool flag6 = num2 == 6;
 								if (flag6)
 								{
-									this.MacroContainer[this.xBook, this.xRow, x] = new string[]
-									{
-										"",
-										"",
-										"",
-										"",
-										"",
-										"",
-										""
-									};
+									this.Books[this.xBook].Rows[this.xRow].Macros[x] = new Macro();
 									int num3 = array.Length - 1;
 									for (int j = 0; j <= num3; j++)
 									{
-										this.MacroContainer[this.xBook, this.xRow, x][j] = array[j];
+										this.Books[this.xBook].Rows[this.xRow].Macros[x][j] = array[j];
 									}
 								}
 								else
 								{
-									string text = Interaction.InputBox("Enter the title for the macro", "Macro Editor", Conversions.ToString(0), -1, -1);
-									this.MacroContainer[this.xBook, this.xRow, x] = new string[]
-									{
-										text,
-										"",
-										"",
-										"",
-										"",
-										"",
-										""
-									};
+									string text = Interaction.InputBox("Enter the title for the macro", "Macro Editor", "0", -1, -1);
+									this.Books[this.xBook].Rows[this.xRow].Macros[x] = new Macro();
+									this.Books[this.xBook].Rows[this.xRow].Macros[x][0] = text;
 									int num4 = array.Length - 1;
 									for (int k = 0; k <= num4; k++)
 									{
-										this.MacroContainer[this.xBook, this.xRow, x][k + 1] = array[k];
+										this.Books[this.xBook].Rows[this.xRow].Macros[x][k + 1] = array[k];
 									}
 								}
 								this.SomethingEdited = true;
@@ -1642,116 +1286,98 @@ namespace MacroEditor
 		// Token: 0x0600006C RID: 108 RVA: 0x0000686C File Offset: 0x00004A6C
 		private void MenuRow_Paste_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
 				do
 				{
-					this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num] = this.RowHolder[num];
+					this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num] = this.RowHolder[num].Clone();
 					num++;
 				}
 				while (num <= 19);
 				this.SomethingEdited = true;
-				this.Rows[Conversions.ToInteger(objectValue)].PerformClick();
+				this.Rows[Convert.ToInt32(objectValue)].PerformClick();
 			}
 		}
 
 		// Token: 0x0600006D RID: 109 RVA: 0x00006908 File Offset: 0x00004B08
 		private void MenuRow_Revert_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
 				do
 				{
-					this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num] = (string[])this.MacroPreserved[this.xBook, Conversions.ToInteger(objectValue), num].Clone();
+					this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num] = this.BooksPreserved[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num].Clone();
 					num++;
 				}
 				while (num <= 19);
 				this.SomethingEdited = true;
-				this.Rows[Conversions.ToInteger(objectValue)].PerformClick();
+				this.Rows[Convert.ToInt32(objectValue)].PerformClick();
 			}
 		}
 
 		// Token: 0x0600006E RID: 110 RVA: 0x000069BC File Offset: 0x00004BBC
 		private void MenuRow_Copy_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
 				do
 				{
-					this.RowHolder[num] = this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num];
+					this.RowHolder[num] = this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num].Clone();
 					num++;
 				}
 				while (num <= 19);
 				this.InternalClipboardMethod = "Row";
-				this.Rows[Conversions.ToInteger(objectValue)].PerformClick();
+				this.Rows[Convert.ToInt32(objectValue)].PerformClick();
 			}
 		}
 
 		// Token: 0x0600006F RID: 111 RVA: 0x00006A5C File Offset: 0x00004C5C
 		private void MenuRow_Cut_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
 				do
 				{
-					this.RowHolder[num] = this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num];
-					this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num] = new string[]
-					{
-						"",
-						"",
-						"",
-						"",
-						"",
-						"",
-						""
-					};
+					this.RowHolder[num] = this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num].Clone();
+					this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num] = new Macro();
 					num++;
 				}
 				while (num <= 19);
 				this.SomethingEdited = true;
-				this.Rows[Conversions.ToInteger(objectValue)].PerformClick();
+				this.Rows[Convert.ToInt32(objectValue)].PerformClick();
 			}
 		}
 
 		// Token: 0x06000070 RID: 112 RVA: 0x00006B4C File Offset: 0x00004D4C
 		private void MenuRow_Clear_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
 			{
 				do
 				{
-					this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num] = new string[]
-					{
-						"",
-						"",
-						"",
-						"",
-						"",
-						"",
-						""
-					};
+					this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num] = new Macro();
 					num++;
 				}
 				while (num <= 19);
 				this.SomethingEdited = true;
-				this.Rows[Conversions.ToInteger(objectValue)].PerformClick();
+				this.Rows[Convert.ToInt32(objectValue)].PerformClick();
 			}
 		}
 
 		// Token: 0x06000071 RID: 113 RVA: 0x00006C1C File Offset: 0x00004E1C
 		private void MenuRow_CopyClipboard_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			string[] array = new string[22];
 			array[0] = "Type: Row";
 			int num = 0;
@@ -1759,7 +1385,7 @@ namespace MacroEditor
 			{
 				do
 				{
-					array[num + 1] = string.Join("\n", this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num]).TrimEnd(new char[0]);
+					array[num + 1] = string.Join("\n", this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num].ToArray()).TrimEnd(new char[0]);
 					num++;
 				}
 				while (num <= 19);
@@ -1771,9 +1397,9 @@ namespace MacroEditor
 		// Token: 0x06000072 RID: 114 RVA: 0x00006CD4 File Offset: 0x00004ED4
 		private void MenuRow_PasteClipboard_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
-			string[] array = Strings.Split(this.CleanClipBoard(), "\n\nMacro:\n", -1, CompareMethod.Binary);
-			bool flag = !this.verifyclipboard("Row", array);
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
+			string[] array = this.CleanClipBoard().Split(new string[] { "\n\nMacro:\n" }, StringSplitOptions.None);
+			bool flag = !this.VerifyClipboardFormat("Row", array);
 			checked
 			{
 				if (!flag)
@@ -1787,33 +1413,24 @@ namespace MacroEditor
 						{
 							'\n'
 						});
-						this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num] = new string[]
-						{
-							"",
-							"",
-							"",
-							"",
-							"",
-							"",
-							""
-						};
+						this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num] = new Macro();
 						int num2 = Math.Min(array2.Length - 1, 6);
 						for (int i = 0; i <= num2; i++)
 						{
 							try
 							{
-								this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num][i] = array2[i];
+								this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num][i] = array2[i];
 							}
 							catch (Exception ex)
 							{
-								this.MacroContainer[this.xBook, Conversions.ToInteger(objectValue), num][i] = "";
+								this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num][i] = "";
 							}
 						}
 						num++;
 					}
 					while (num <= 19);
 					this.SomethingEdited = true;
-					this.Rows[Conversions.ToInteger(objectValue)].PerformClick();
+					this.Rows[Convert.ToInt32(objectValue)].PerformClick();
 				}
 			}
 		}
@@ -1822,194 +1439,65 @@ namespace MacroEditor
 		private void MenuMain_evaluate_Click(object sender, EventArgs e)
 		{
 			this.Rows[this.xRow].Focus();
-			Dictionary<int, string[]> dictionary = new Dictionary<int, string[]>();
-			Dictionary<int, string[]> dictionary2 = new Dictionary<int, string[]>();
-			int num = this.debuglimit;
-			checked
+
+			var validator = new MacroValidator(this.atEncoder);
+			var results = validator.ValidateAll(this.Books, this.debuglimit);
+
+			this.Evaluation?.Hide();
+			this.Evaluation = new Assessment();
+			this.Evaluation.SetNavigateCallback((b, r, m) => this.FindMacro(b, r, m));
+			bool flag9 = results.Count > 0;
+			if (flag9)
 			{
-				for (int i = 0; i <= num; i++)
+				foreach (var result in results)
 				{
-					int num2 = 0;
-					do
+					string bookName = this.Contents.Items.Count > result.BookIndex 
+						? this.Contents.Items[result.BookIndex].ToString() 
+						: "Book " + (result.BookIndex + 1);
+					if (result.Severity == ValidationSeverity.Error)
 					{
-						int num3 = 0;
-						do
-						{
-							bool flag = this.MacroContainer[i, num2, num3][0].Length > 8;
-							if (flag)
-							{
-								dictionary[dictionary.Count] = new string[]
-								{
-									Conversions.ToString(i),
-									Conversions.ToString(num2),
-									Conversions.ToString(num3),
-									Conversions.ToString(0),
-									"8 characters max.",
-									this.MacroContainer[i, num2, num3][0]
-								};
-							}
-							int num4 = 1;
-							do
-							{
-								string text = this.MacroContainer[i, num2, num3][num4];
-								string text2 = this.ATWriter(text);
-								Match match = new Regex("[^\\x00-\\x7f]").Match(text);
-								bool flag2 = text.Length == 0;
-								if (!flag2)
-								{
-									bool flag3 = text2.Length > 60;
-									if (flag3)
-									{
-										dictionary[dictionary.Count] = new string[]
-										{
-											Conversions.ToString(i),
-											Conversions.ToString(num2),
-											Conversions.ToString(num3),
-											Conversions.ToString(num4),
-											Conversions.ToString(2),
-											"After auto-translate, the line is " + Conversions.ToString(text2.Length) + " characters."
-										};
-									}
-									else
-									{
-										bool flag4 = match.Length != 0;
-										if (flag4)
-										{
-											dictionary2[dictionary2.Count] = new string[]
-											{
-												Conversions.ToString(i),
-												Conversions.ToString(num2),
-												Conversions.ToString(num3),
-												Conversions.ToString(num4),
-												Conversions.ToString(3),
-												text
-											};
-										}
-										else
-										{
-											bool flag5 = text.StartsWith("//");
-											if (flag5)
-											{
-												dictionary2[dictionary2.Count] = new string[]
-												{
-													Conversions.ToString(i),
-													Conversions.ToString(num2),
-													Conversions.ToString(num3),
-													Conversions.ToString(num4),
-													Conversions.ToString(4),
-													text
-												};
-											}
-											else
-											{
-												bool flag6 = !text.StartsWith("/");
-												if (flag6)
-												{
-													dictionary2[dictionary2.Count] = new string[]
-													{
-														Conversions.ToString(i),
-														Conversions.ToString(num2),
-														Conversions.ToString(num3),
-														Conversions.ToString(num4),
-														Conversions.ToString(5),
-														text
-													};
-												}
-												else
-												{
-													bool flag7 = text.StartsWith("/wait");
-													if (flag7)
-													{
-														dictionary2[dictionary2.Count] = new string[]
-														{
-															Conversions.ToString(i),
-															Conversions.ToString(num2),
-															Conversions.ToString(num3),
-															Conversions.ToString(num4),
-															Conversions.ToString(6),
-															text
-														};
-													}
-													else
-													{
-														bool flag8 = text.Contains("|UnknownItem>");
-														if (flag8)
-														{
-															dictionary2[dictionary2.Count] = new string[]
-															{
-																Conversions.ToString(i),
-																Conversions.ToString(num2),
-																Conversions.ToString(num3),
-																Conversions.ToString(num4),
-																Conversions.ToString(7),
-																text
-															};
-														}
-													}
-												}
-											}
-										}
-									}
-								}
-								num4++;
-							}
-							while (num4 <= 6);
-							num3++;
-						}
-						while (num3 <= 19);
-						num2++;
+						this.Evaluation.AddResult(
+							bookName,
+							result.BookIndex,
+							result.RowIndex,
+							result.MacroIndex,
+							result.LineIndex,
+							result.Message,
+							result.Content,
+							Color.Red, Color.White);
 					}
-					while (num2 <= 9);
-				}
-				this.Evaluation.Hide();
-				this.Evaluation = new Assessment();
-				bool flag9 = dictionary.Count + dictionary2.Count > 0;
-				if (flag9)
-				{
-					try
+					else
 					{
-						foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
-						{
-							this.Evaluation.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.Red, Color.White);
-						}
-					}
-					finally
-					{
-						Dictionary<int, string[]>.Enumerator enumerator;
-						((IDisposable)enumerator).Dispose();
-					}
-					try
-					{
-						foreach (KeyValuePair<int, string[]> keyValuePair2 in dictionary2)
-						{
-							this.Evaluation.AddResult(keyValuePair2.Value[0], keyValuePair2.Value[1], keyValuePair2.Value[2], keyValuePair2.Value[3], keyValuePair2.Value[4], keyValuePair2.Value[5], Color.White, Color.Black);
-						}
-					}
-					finally
-					{
-						Dictionary<int, string[]>.Enumerator enumerator2;
-						((IDisposable)enumerator2).Dispose();
+						this.Evaluation.AddResult(
+							bookName,
+							result.BookIndex,
+							result.RowIndex,
+							result.MacroIndex,
+							result.LineIndex,
+							result.IType.ToString(),
+							result.Content,
+							Color.White, Color.Black);
 					}
 				}
-				else
-				{
-					Interaction.MsgBox("No warnings or errors found.", MsgBoxStyle.OkOnly, null);
-				}
-				this.Evaluation.Show(this);
 			}
+			else
+			{
+				MessageBox.Show("No warnings or errors found.", "Macro Editor", MessageBoxButtons.OK);
+			}
+			this.Evaluation.Show(this);
 		}
 
 		// Token: 0x06000074 RID: 116 RVA: 0x00007390 File Offset: 0x00005590
 		private void MenuHandler_CutSide_Click(object sender, EventArgs e)
 		{
-			this.MenuHandler_CopySide_Click(RuntimeHelpers.GetObjectValue(sender), e);
-			this.MenuHandler_ClearSide_Click(RuntimeHelpers.GetObjectValue(sender), e);
+			this.MenuHandler_CopySide_Click(sender, e);
+			this.MenuHandler_ClearSide_Click(sender, e);
 		}
 
 		// Token: 0x06000075 RID: 117 RVA: 0x000073B0 File Offset: 0x000055B0
 		private void MenuHandler_CopySide_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			string[] array = new string[12];
 			array[0] = "Type: Side";
 			bool flag = this.handlerStart == 10;
@@ -2021,7 +1509,7 @@ namespace MacroEditor
 					int num2 = this.handlerEnd;
 					for (int i = num; i <= num2; i++)
 					{
-						array[i - 10 + 1] = string.Join("\n", this.MacroContainer[this.xBook, this.xRow, i]);
+						array[i - 10 + 1] = string.Join("\n", this.Books[this.xBook].Rows[this.xRow].Macros[i].ToArray());
 					}
 				}
 				else
@@ -2030,7 +1518,7 @@ namespace MacroEditor
 					int num4 = this.handlerEnd;
 					for (int j = num3; j <= num4; j++)
 					{
-						array[j + 1] = string.Join("\n", this.MacroContainer[this.xBook, this.xRow, j]);
+						array[j + 1] = string.Join("\n", this.Books[this.xBook].Rows[this.xRow].Macros[j].ToArray());
 					}
 				}
 				array[11] = "EndSide (Please do not remove empty lines as they're part of the sharing format). If you experience problems pasting, please make sure to download an up to date version.";
@@ -2041,14 +1529,14 @@ namespace MacroEditor
 		// Token: 0x06000076 RID: 118 RVA: 0x000074D8 File Offset: 0x000056D8
 		private void MenuHandler_PasteSide_Click(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
-			string[] array = Strings.Split(this.CleanClipBoard(), "\n\nMacro:\n", -1, CompareMethod.Binary);
-			bool flag = Operators.CompareString(array[0], "Type: Side", false) == 0;
+			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
+			string[] array = this.CleanClipBoard().Split(new string[] { "\n\nMacro:\n" }, StringSplitOptions.None);
+			bool flag = string.Equals(array[0], "Type: Side", StringComparison.Ordinal);
 			checked
 			{
 				if (flag)
 				{
-					bool flag2 = !this.verifyclipboard("Side", array);
+					bool flag2 = !this.VerifyClipboardFormat("Side", array);
 					if (!flag2)
 					{
 						array = array.Skip(1).ToArray<string>();
@@ -2067,7 +1555,7 @@ namespace MacroEditor
 								int num3 = 0;
 								do
 								{
-									this.MacroContainer[this.xBook, this.xRow, i][num3] = array2[num3];
+									this.Books[this.xBook].Rows[this.xRow].Macros[i][num3] = array2[num3];
 									num3++;
 								}
 								while (num3 <= 6);
@@ -2086,7 +1574,7 @@ namespace MacroEditor
 								int num6 = 0;
 								do
 								{
-									this.MacroContainer[this.xBook, this.xRow, j][num6] = array3[num6];
+									this.Books[this.xBook].Rows[this.xRow].Macros[j][num6] = array3[num6];
 									num6++;
 								}
 								while (num6 <= 6);
@@ -2108,16 +1596,7 @@ namespace MacroEditor
 			{
 				for (int i = num; i <= num2; i++)
 				{
-					this.MacroContainer[this.xBook, this.xRow, i] = new string[]
-					{
-						"",
-						"",
-						"",
-						"",
-						"",
-						"",
-						""
-					};
+					this.Books[this.xBook].Rows[this.xRow].Macros[i] = new Macro();
 				}
 				this.SomethingEdited = true;
 				this.Rows[this.xRow].PerformClick();
@@ -2138,47 +1617,32 @@ namespace MacroEditor
 				{
 					this.macropath = this.OpenDialog.FileName.Substring(0, this.OpenDialog.FileName.LastIndexOf("\\"));
 					this.Warning.Visible = false;
-					string path = this.macropath + "\\mcr.ttl";
-					byte[] array = File.ReadAllBytes(path);
-					string text = "";
-					int num = array.Length - 1;
-					for (int i = 0; i <= num; i++)
-					{
-						text += Conversions.ToString(Convert.ToChar(array[i]));
-					}
-					Match match = new Regex("((.{15}\\x00)+$)").Match(text);
-					text = match.Groups[1].ToString();
-					text = new Regex("\0+").Replace(text, ",");
-					string[] array2 = text.Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+					List<string> bookNames = this.fileManager.ReadBookNames(this.macropath);
+					this.debuglimit = bookNames.Count - 1;
 					this.Contents.Items.Clear();
+					this.Books.Clear();
+					this.BooksPreserved.Clear();
 					int num2 = this.debuglimit;
 					for (int j = 0; j <= num2; j++)
 					{
-						this.UpdateStatusBar("Extracting...", array2[j]);
-						this.Contents.Items.Add(array2[j]);
+						this.Books.Add(new MacroBook(bookNames[j]));
+						this.BooksPreserved.Add(new MacroBook(bookNames[j]));
+						this.UpdateStatusBar("Extracting...", bookNames[j]);
+						this.Contents.Items.Add(bookNames[j]);
 						this.Contents.Refresh();
 						this.StatusBar.Refresh();
 						int num3 = 0;
 						do
 						{
-							string text2 = this.macropath + "\\mcr" + this.KillZero(j, num3) + ".dat";
+							string text2 = this.fileManager.GetDatFilePath(this.macropath, j, num3);
 							bool flag2 = !File.Exists(text2);
 							if (flag2)
 							{
 								int num4 = 0;
 								do
 								{
-									this.MacroContainer[j, num3, num4] = new string[]
-									{
-										"",
-										"",
-										"",
-										"",
-										"",
-										"",
-										""
-									};
-									this.MacroPreserved[j, num3, num4] = (string[])this.MacroContainer[j, num3, num4].Clone();
+									this.Books[j].Rows[num3].Macros[num4] = new Macro();
+									this.BooksPreserved[j].Rows[num3].Macros[num4] = this.Books[j].Rows[num3].Macros[num4].Clone();
 									num4++;
 								}
 								while (num4 <= 19);
@@ -2191,25 +1655,25 @@ namespace MacroEditor
 						}
 						while (num3 <= 9);
 					}
-					this.UpdateStatusBar("Extraction complete", "");
-					try
+					Log("File loaded: " + this.Books.Count + " books");
+					// Load template variables from Book 40 and apply substitution to Books 1-39
+					if (this.Books.Count >= 40)
 					{
-						foreach (object obj in base.Controls)
+						int varCount = this.variableEngine.LoadVariables(this.Books[39]);
+						if (varCount > 0)
 						{
-							object objectValue = RuntimeHelpers.GetObjectValue(obj);
-							NewLateBinding.LateSet(objectValue, null, "enabled", new object[]
-							{
-								true
-							}, null, null);
+							this.variableEngine.SubstituteAll(this.Books);
+							// Load and apply locks (converts {name} → {!name} at locked positions)
+							string lockPath = this.macropath + "\\" + VariableSubstitutionEngine.LOCK_FILENAME;
+							this.variableEngine.LoadLocks(lockPath);
+							this.variableEngine.ApplyLocks(this.Books);
+							Log("Template variables loaded: " + varCount + " variables, " + this.variableEngine.LockCount + " locks");
 						}
 					}
-					finally
+					this.UpdateStatusBar("Extraction complete", "");
+					foreach (object obj in base.Controls)
 					{
-						IEnumerator enumerator;
-						if (enumerator is IDisposable)
-						{
-							(enumerator as IDisposable).Dispose();
-						}
+						((Control)obj).Enabled = true;
 					}
 					this.MenuMain_evaluate.Enabled = true;
 					this.MenuMain_Search.Enabled = true;
@@ -2236,24 +1700,42 @@ namespace MacroEditor
 			{
 				if (flag)
 				{
+					// Resolve template variables for Books 1-39 before saving
+					List<MacroBook> saveBooks = null;
+					if (this.variableEngine.HasVariables)
+					{
+						saveBooks = this.variableEngine.ResolveAllForSave(this.Books);
+					}
+
 					int num2 = 0;
 					for (;;)
 					{
 						int num3 = 0;
 						do
 						{
-							bool flag2 = !this.WriteFile(num2, num3);
+							bool flag2;
+							if (num2 <= 38 && saveBooks != null)
+							{
+								// Write resolved (de-substituted) data for Books 1-39
+								flag2 = !this.fileManager.WriteRow(this.macropath, num2, num3,
+									saveBooks[num2].Rows[num3], this.BooksPreserved[num2].Rows[num3], 19);
+							}
+							else
+							{
+								// Write Book 40 directly (no substitution) or if no variables
+								flag2 = !this.WriteFile(num2, num3);
+							}
 							if (flag2)
 							{
 								goto Block_2;
 							}
-							this.UpdateStatusBar(Conversions.ToString(this.Contents.Items[num2]), "Writing " + this.KillZero(num2, num3) + ".dat");
+							this.UpdateStatusBar(this.Contents.Items[num2].ToString(), "Writing " + MacroEditorUtils.GetMacroFileSuffix(num2, num3) + ".dat");
 							this.StatusBar.Refresh();
 							num3++;
 						}
 						while (num3 <= 9);
 						num2++;
-						if (num2 > 19)
+						if (num2 > this.debuglimit)
 						{
 							goto IL_B3;
 						}
@@ -2271,6 +1753,14 @@ namespace MacroEditor
 					this.MenuBook_SaveBookNames.PerformClick();
 					this.UpdateStatusBar("Titles saved.", "Save Complete.");
 				}
+				this.SomethingEdited = false;
+				// Save lock file after successful save
+				if (this.variableEngine.HasVariables)
+				{
+					this.variableEngine.RebuildLocks(this.Books);
+					string lockPath = this.macropath + "\\" + VariableSubstitutionEngine.LOCK_FILENAME;
+					this.variableEngine.SaveLocks(lockPath);
+				}
 			}
 		}
 
@@ -2281,78 +1771,452 @@ namespace MacroEditor
 			help.ShowDialog();
 		}
 
-		// Token: 0x0600007C RID: 124 RVA: 0x00007BC0 File Offset: 0x00005DC0
-		private void MenuBook_SaveBookNames_Click(object sender, EventArgs e)
+		// ===== BROADCAST EDIT (Apply to All Books) =====
+
+		private void BroadcastPage_Click(object sender, EventArgs e)
 		{
-			string path = this.macropath + "\\mcr.ttl";
-			byte[] sourceArray = File.ReadAllBytes(path);
-			StringBuilder stringBuilder = new StringBuilder();
-			int num = 0;
-			checked
+			string msg = string.Format(
+				"This will copy ALL 20 macros from Page {0} of \"{1}\" to the same page in every other book (Books 1-39).\n\n" +
+				"This will OVERWRITE the existing macros at that page in all other books.\n\nContinue?",
+				this.xRow + 1, this.Contents.Items[this.xBook]);
+			if (MessageBox.Show(msg, "Apply Page to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
 			{
-				do
+				if (bookIdx == this.xBook) continue;
+				for (int macroIdx = 0; macroIdx < 20; macroIdx++)
 				{
-					StringBuilder stringBuilder2 = stringBuilder;
-					object instance = NewLateBinding.LateGet(this.Contents.Items[num], null, "trim", new object[0], null, null, null);
-					Type type = null;
-					string memberName = "Substring";
-					object[] array = new object[2];
-					array[0] = 0;
-					int num2 = 1;
-					object instance2;
-					object[] array2;
-					bool[] array3;
-					object obj = NewLateBinding.LateGet(null, typeof(Math), "Min", array2 = new object[]
-					{
-						15,
-						NewLateBinding.LateGet(instance2 = this.Contents.Items[num], null, "length", new object[0], null, null, null)
-					}, null, null, array3 = new bool[]
-					{
-						default(bool),
-						true
-					});
-					if (array3[1])
-					{
-						NewLateBinding.LateSetComplex(instance2, null, "length", new object[]
-						{
-							array2[1]
-						}, null, null, true, true);
-					}
-					array[num2] = obj;
-					stringBuilder2.Append(this.fill(Conversions.ToString(NewLateBinding.LateGet(instance, type, memberName, array, null, null, null)), 16, "\0"));
-					num++;
+					this.Books[bookIdx].Rows[this.xRow].Macros[macroIdx] = this.Books[this.xBook].Rows[this.xRow].Macros[macroIdx].Clone();
 				}
-				while (num <= 19);
-				bool flag = stringBuilder.Length != 320;
-				if (flag)
+			}
+			this.SomethingEdited = true;
+			this.UpdateStatusBar("Broadcast", "Page " + (this.xRow + 1) + " applied to all books.");
+		}
+
+		private void BroadcastMacro_Click(object sender, EventArgs e)
+		{
+			string macroLabel = (this.xMacro < 10) ? "Ctrl " + (this.xMacro + 1) : "Alt " + (this.xMacro - 9);
+			string msg = string.Format(
+				"This will copy macro \"{0}\" from Page {1} of \"{2}\" to the same slot in every other book (Books 1-39).\n\n" +
+				"This will OVERWRITE the macro at that position in all other books.\n\nContinue?",
+				macroLabel, this.xRow + 1, this.Contents.Items[this.xBook]);
+			if (MessageBox.Show(msg, "Apply Macro to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
+			{
+				if (bookIdx == this.xBook) continue;
+				this.Books[bookIdx].Rows[this.xRow].Macros[this.xMacro] = this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro].Clone();
+			}
+			this.SomethingEdited = true;
+			this.UpdateStatusBar("Broadcast", macroLabel + " applied to all books.");
+		}
+
+		private void BroadcastCtrlAltRow_Click(object sender, EventArgs e)
+		{
+			int start = this.handlerStart;
+			int end = this.handlerEnd;
+			// If FlipHandler was used (start==0, end==0), don't broadcast
+			if (start == end) return;
+
+			string rowLabel = (start == 0) ? "Ctrl row (macros 1-10)" : "Alt row (macros 1-10)";
+			string msg = string.Format(
+				"This will copy the {0} from Page {1} of \"{2}\" to the same positions in every other book (Books 1-39).\n\n" +
+				"This will OVERWRITE those macros in all other books.\n\nContinue?",
+				rowLabel, this.xRow + 1, this.Contents.Items[this.xBook]);
+			if (MessageBox.Show(msg, "Apply Ctrl/Alt Row to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
+			{
+				if (bookIdx == this.xBook) continue;
+				for (int macroIdx = start; macroIdx <= end; macroIdx++)
 				{
-					Interaction.MsgBox("Compilation of Macro Book titles failed", MsgBoxStyle.OkOnly, null);
+					this.Books[bookIdx].Rows[this.xRow].Macros[macroIdx] = this.Books[this.xBook].Rows[this.xRow].Macros[macroIdx].Clone();
+				}
+			}
+			this.SomethingEdited = true;
+			this.UpdateStatusBar("Broadcast", rowLabel + " applied to all books.");
+		}
+
+		private void BroadcastLine_Click(object sender, EventArgs e)
+		{
+			if (this.CurrentLine < 0) return;
+			string lineLabel = (this.CurrentLine == 0) ? "Title" : "Line " + this.CurrentLine;
+			string currentText = this.Lines[this.CurrentLine].Text;
+			string msg = string.Format(
+				"This will copy {0} (\"{1}\") from macro {2}, Page {3} of \"{4}\" to the same position in every other book (Books 1-39).\n\n" +
+				"This will OVERWRITE that line in all other books.\n\nContinue?",
+				lineLabel,
+				currentText.Length > 20 ? currentText.Substring(0, 20) + "..." : currentText,
+				this.xMacro + 1, this.xRow + 1, this.Contents.Items[this.xBook]);
+			if (MessageBox.Show(msg, "Apply Line to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
+			{
+				if (bookIdx == this.xBook) continue;
+				this.Books[bookIdx].Rows[this.xRow].Macros[this.xMacro][this.CurrentLine] = currentText;
+			}
+			this.SomethingEdited = true;
+			this.UpdateStatusBar("Broadcast", lineLabel + " applied to all books.");
+		}
+
+		// ===== EXPORT AND RESTORE =====
+
+		private void File_Export_Click(object sender, EventArgs e)
+		{
+			// 1. Pick destination folder via OpenFileDialog (same style as Open)
+			this.OpenDialog.InitialDirectory = this.macropath;
+			this.OpenDialog.Filter = "Macro Title Files|mcr.ttl";
+			this.OpenDialog.FileName = "mcr.ttl";
+			this.OpenDialog.Multiselect = false;
+			this.OpenDialog.Title = "Select Destination Character's mcr.ttl";
+			if (this.OpenDialog.ShowDialog() == DialogResult.Cancel)
+				return;
+
+			string destPath = this.OpenDialog.FileName.Substring(0, this.OpenDialog.FileName.LastIndexOf("\\"));
+
+			// Reset dialog title for normal use
+			this.OpenDialog.Title = "Find Macro Files";
+
+			// 2. Read destination Book 40 variables (before any backup rename)
+			var destVars = this.variableEngine.LoadDestinationVariables(destPath, this.fileManager);
+
+			// 3. Check for missing variables and prepare destination Book 40
+			MacroBook destBook40 = null;
+			List<string> missingVars = this.variableEngine.GetMissingVariables(destVars);
+			if (missingVars.Count > 0)
+			{
+				// Build destination Book 40 from existing files
+				destBook40 = new MacroBook("Variables");
+				for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+				{
+					string datPath = destPath + "\\mcr" + MacroEditorUtils.GetMacroFileSuffix(39, rowIdx) + ".dat";
+					MacroRow row = this.fileManager.ReadMacroRow(datPath);
+					if (row != null)
+						destBook40.Rows[rowIdx] = row;
+				}
+				destBook40 = this.variableEngine.AddMissingVariablesToBook40(destBook40, missingVars);
+
+				// Warn user about missing variables
+				string missingList = string.Join(", ", missingVars);
+				var missingResult = MessageBox.Show(
+					"The destination is missing these variables:\n" + missingList + "\n\n" +
+					"They will be added as placeholders with EMPTY values. This means any macros " +
+					"using these variables will have blank text where the variable should be.\n\n" +
+					"It is recommended to set up the destination's variables in Book 40 before exporting.\n\n" +
+					"Proceed anyway?",
+					"Missing Variables", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+				if (missingResult == DialogResult.Cancel)
+					return;
+			}
+
+			// 4. Show overwrite warning
+			var result = MessageBox.Show(
+				"Export will overwrite macros in:\n" + destPath + "\n\n" +
+				"This will replace ALL macro files in that folder with the current set.\n\n" +
+				"Click YES to export directly.\nClick NO to backup existing files first, then export.\nClick CANCEL to abort.",
+				"Export Macros", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+
+			if (result == DialogResult.Cancel)
+				return;
+
+			bool doBackup = (result == DialogResult.No);
+
+			// 5. Backup if requested
+			if (doBackup)
+			{
+				BackupMacroFiles(destPath);
+			}
+
+			// 6. Resolve and export
+			List<MacroBook> exportBooks;
+			if (this.variableEngine.HasVariables)
+			{
+				exportBooks = this.variableEngine.ResolveAllForExport(this.Books, destVars);
+			}
+			else
+			{
+				// No variables — straight clone
+				exportBooks = new List<MacroBook>();
+				for (int i = 0; i <= Math.Min(this.Books.Count - 2, 38); i++)
+					exportBooks.Add(this.Books[i].Clone());
+			}
+
+			// 7. Write exported .dat files for Books 1-39
+			for (int bookIdx = 0; bookIdx < exportBooks.Count; bookIdx++)
+			{
+				for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+				{
+					this.fileManager.WriteRow(destPath, bookIdx, rowIdx,
+						exportBooks[bookIdx].Rows[rowIdx], exportBooks[bookIdx].Rows[rowIdx], 19);
+				}
+			}
+
+			// 8. Write Book 40
+			// If destination was missing variables, write the updated Book 40 with placeholders
+			// Otherwise, do NOT overwrite destination's Book 40 (it has its own variable values)
+			if (destBook40 != null)
+			{
+				for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+				{
+					this.fileManager.WriteRow(destPath, 39, rowIdx,
+						destBook40.Rows[rowIdx], destBook40.Rows[rowIdx], 19);
+				}
+			}
+			// If destBook40 is null, destination already had all variables — leave its Book 40 alone
+
+			// 9. Write book names
+			List<string> bookNames = new List<string>();
+			for (int i = 0; i < this.Contents.Items.Count; i++)
+				bookNames.Add(this.Contents.Items[i].ToString());
+			this.fileManager.WriteBookNames(destPath, bookNames);
+
+			// 10. Success
+			this.UpdateStatusBar("Export complete", destPath);
+			MessageBox.Show("Export complete!\n\nMacros exported to:\n" + destPath, "Export", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+
+		private void BackupMacroFiles(string folderPath)
+		{
+			string[] macroFiles = Directory.GetFiles(folderPath, "mcr*");
+			foreach (string file in macroFiles)
+			{
+				// Don't backup .backup files themselves
+				if (file.EndsWith(".backup")) continue;
+				string backupPath = file + ".backup";
+				// Overwrite old backup if exists
+				if (File.Exists(backupPath))
+					File.Delete(backupPath);
+				File.Move(file, backupPath);
+			}
+			// Also backup lock file if it exists
+			string lockFile = Path.Combine(folderPath, VariableSubstitutionEngine.LOCK_FILENAME);
+			if (File.Exists(lockFile))
+			{
+				string lockBackup = lockFile + ".backup";
+				if (File.Exists(lockBackup))
+					File.Delete(lockBackup);
+				File.Move(lockFile, lockBackup);
+			}
+		}
+
+		private void File_RestoreBackup_Click(object sender, EventArgs e)
+		{
+			// Default to currently loaded folder
+			string folderPath = this.macropath;
+
+			// Confirm with option to pick a different folder
+			var result = MessageBox.Show(
+				"Restore backup in:\n" + folderPath + "\n\n" +
+				"This will DELETE current macro files and RESTORE from .backup files.\n" +
+				"This cannot be undone.\n\n" +
+				"Click YES to restore this folder.\nClick NO to choose a different folder.\nClick CANCEL to abort.",
+				"Restore from Backup", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+
+			if (result == DialogResult.Cancel)
+				return;
+
+			if (result == DialogResult.No)
+			{
+				// Pick a different folder via OpenFileDialog (same style as Open)
+				this.OpenDialog.InitialDirectory = this.macropath;
+				this.OpenDialog.Filter = "Macro Title Files|mcr.ttl;*.backup";
+				this.OpenDialog.FileName = "mcr.ttl";
+				this.OpenDialog.Multiselect = false;
+				this.OpenDialog.Title = "Select Folder to Restore (pick any macro file)";
+				if (this.OpenDialog.ShowDialog() == DialogResult.Cancel)
+					return;
+				folderPath = this.OpenDialog.FileName.Substring(0, this.OpenDialog.FileName.LastIndexOf("\\"));
+				this.OpenDialog.Title = "Find Macro Files";
+				this.OpenDialog.Filter = "Macro Title Files|mcr.ttl";
+			}
+
+			// Check if backup files exist
+			string[] backupFiles = Directory.GetFiles(folderPath, "*.backup");
+			if (backupFiles.Length == 0)
+			{
+				MessageBox.Show("No backup files found in this folder.", "Restore from Backup", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			// Delete current files and restore backups
+			foreach (string backupFile in backupFiles)
+			{
+				string originalPath = backupFile.Substring(0, backupFile.Length - ".backup".Length);
+				if (File.Exists(originalPath))
+					File.Delete(originalPath);
+				File.Move(backupFile, originalPath);
+			}
+
+			// If restored folder is the currently loaded folder, offer to reload
+			if (string.Equals(folderPath, this.macropath, StringComparison.OrdinalIgnoreCase))
+			{
+				var reloadResult = MessageBox.Show(
+					"Backup restored. This is the currently loaded macro set.\n\nReload now?",
+					"Restore Complete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+				if (reloadResult == DialogResult.Yes)
+				{
+					this.File_Open_Click(sender, e);
+				}
+			}
+			else
+			{
+				MessageBox.Show("Backup restored successfully!", "Restore Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
+
+			this.UpdateStatusBar("Restore complete", folderPath);
+		}
+
+		private void File_ExportAll_Click(object sender, EventArgs e)
+		{
+			// Determine the USER folder (parent of the currently loaded macro folder)
+			string userFolder = Directory.GetParent(this.macropath).FullName;
+			string currentFolder = new DirectoryInfo(this.macropath).Name;
+
+			// Find all sibling character folders (excluding the current one)
+			string[] allDirs = Directory.GetDirectories(userFolder);
+			var targetDirs = new List<string>();
+			foreach (string dir in allDirs)
+			{
+				string dirName = new DirectoryInfo(dir).Name;
+				if (!string.Equals(dirName, currentFolder, StringComparison.OrdinalIgnoreCase))
+				{
+					// Only include folders that have macro files (mcr.ttl exists)
+					if (File.Exists(Path.Combine(dir, "mcr.ttl")))
+						targetDirs.Add(dir);
+				}
+			}
+
+			if (targetDirs.Count == 0)
+			{
+				MessageBox.Show("No other character folders found in:\n" + userFolder,
+					"Export to All", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			// WARNING 1 — emphatic
+			var warn1 = MessageBox.Show(
+				"⚠️ EXPORT TO ALL CHARACTERS ⚠️\n\n" +
+				"This will OVERWRITE the macros for EVERY OTHER CHARACTER in:\n" + userFolder + "\n\n" +
+				"The following " + targetDirs.Count + " character folder(s) will be affected:\n" +
+				string.Join("\n", targetDirs.ConvertAll(d => "  • " + new DirectoryInfo(d).Name)) + "\n\n" +
+				"This is a DESTRUCTIVE operation. All existing macros in those folders will be REPLACED.\n\n" +
+				"Are you absolutely sure you want to proceed?",
+				"⚠️ Export to ALL Characters ⚠️", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+
+			if (warn1 != DialogResult.OK)
+				return;
+
+			// WARNING 2 — final confirmation
+			var warn2 = MessageBox.Show(
+				"FINAL CONFIRMATION\n\n" +
+				"You are about to overwrite macros for " + targetDirs.Count + " character(s).\n\n" +
+				"This CANNOT be undone without backups.\n\n" +
+				"Click YES to export and backup existing files.\n" +
+				"Click NO to export WITHOUT backup (dangerous).\n" +
+				"Click CANCEL to abort.",
+				"⚠️ LAST CHANCE — Export to All ⚠️", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Stop);
+
+			if (warn2 == DialogResult.Cancel)
+				return;
+
+			bool doBackup = (warn2 == DialogResult.Yes);
+
+			// Process each target directory
+			int successCount = 0;
+			int skipCount = 0;
+			foreach (string destPath in targetDirs)
+			{
+				// Read destination variables
+				var destVars = this.variableEngine.LoadDestinationVariables(destPath, this.fileManager);
+
+				// Check for missing variables (add placeholders silently for bulk export)
+				MacroBook destBook40 = null;
+				List<string> missingVars = this.variableEngine.GetMissingVariables(destVars);
+				if (missingVars.Count > 0)
+				{
+					destBook40 = new MacroBook("Variables");
+					for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+					{
+						string datPath = destPath + "\\mcr" + MacroEditorUtils.GetMacroFileSuffix(39, rowIdx) + ".dat";
+						MacroRow row = this.fileManager.ReadMacroRow(datPath);
+						if (row != null)
+							destBook40.Rows[rowIdx] = row;
+					}
+					destBook40 = this.variableEngine.AddMissingVariablesToBook40(destBook40, missingVars);
+				}
+
+				// Backup if requested
+				if (doBackup)
+				{
+					BackupMacroFiles(destPath);
+				}
+
+				// Resolve and export
+				List<MacroBook> exportBooks;
+				if (this.variableEngine.HasVariables)
+				{
+					exportBooks = this.variableEngine.ResolveAllForExport(this.Books, destVars);
 				}
 				else
 				{
-					byte[] bytes = Encoding.Default.GetBytes(stringBuilder.ToString());
-					MD5CryptoServiceProvider md5CryptoServiceProvider = new MD5CryptoServiceProvider();
-					byte[] array4 = md5CryptoServiceProvider.ComputeHash(bytes);
-					StringBuilder stringBuilder3 = new StringBuilder();
-					int num3 = array4.Length - 1;
-					for (int i = 0; i <= num3; i++)
+					exportBooks = new List<MacroBook>();
+					for (int i = 0; i <= Math.Min(this.Books.Count - 2, 38); i++)
+						exportBooks.Add(this.Books[i].Clone());
+				}
+
+				// Write Books 1-39
+				for (int bookIdx = 0; bookIdx < exportBooks.Count; bookIdx++)
+				{
+					for (int rowIdx = 0; rowIdx < 10; rowIdx++)
 					{
-						stringBuilder3.Append(Strings.Chr((int)array4[i]));
-					}
-					bool flag2 = stringBuilder.Length != 320;
-					if (flag2)
-					{
-						Interaction.MsgBox("Compilation of Macro Names file failed.", MsgBoxStyle.OkOnly, null);
-					}
-					else
-					{
-						byte[] array5 = new byte[8 + array4.Length + bytes.Length - 1 + 1];
-						Array.Copy(sourceArray, 0, array5, 0, 8);
-						Array.Copy(array4, 0, array5, 8, 16);
-						Array.Copy(bytes, 0, array5, 24, bytes.Length);
-						File.WriteAllBytes(path, array5);
+						this.fileManager.WriteRow(destPath, bookIdx, rowIdx,
+							exportBooks[bookIdx].Rows[rowIdx], exportBooks[bookIdx].Rows[rowIdx], 19);
 					}
 				}
+
+				// Write Book 40 only if missing variables were added
+				if (destBook40 != null)
+				{
+					for (int rowIdx = 0; rowIdx < 10; rowIdx++)
+					{
+						this.fileManager.WriteRow(destPath, 39, rowIdx,
+							destBook40.Rows[rowIdx], destBook40.Rows[rowIdx], 19);
+					}
+				}
+
+				// Write book names
+				List<string> bookNames = new List<string>();
+				for (int i = 0; i < this.Contents.Items.Count; i++)
+					bookNames.Add(this.Contents.Items[i].ToString());
+				this.fileManager.WriteBookNames(destPath, bookNames);
+
+				successCount++;
+				this.UpdateStatusBar("Exporting...", new DirectoryInfo(destPath).Name + " (" + successCount + "/" + targetDirs.Count + ")");
+				this.StatusBar.Refresh();
+			}
+
+			this.UpdateStatusBar("Export to All complete", successCount + " characters updated");
+			MessageBox.Show("Export to All complete!\n\n" + successCount + " character(s) updated." +
+				(doBackup ? "\n\nBackups were created in each folder." : ""),
+				"Export to All", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+
+		// Token: 0x0600007C RID: 124 RVA: 0x00007BC0 File Offset: 0x00005DC0
+		private void MenuBook_SaveBookNames_Click(object sender, EventArgs e)
+		{
+			List<string> bookNames = new List<string>();
+			checked
+			{
+				int num = this.Contents.Items.Count - 1;
+				for (int i = 0; i <= num; i++)
+				{
+					bookNames.Add(this.Contents.Items[i].ToString());
+				}
+				this.fileManager.WriteBookNames(this.macropath, bookNames);
 			}
 		}
 
@@ -2365,7 +2229,8 @@ namespace MacroEditor
 		// Token: 0x0600007E RID: 126 RVA: 0x00007DE4 File Offset: 0x00005FE4
 		private void MenuText_Opening(object sender, CancelEventArgs e)
 		{
-			bool flag = Operators.ConditionalCompareObjectEqual(NewLateBinding.LateGet(sender, null, "name", new object[0], null, null, null), "MenuText", false);
+			string senderName = (sender is Control ctrl) ? ctrl.Name : (sender is ToolStripDropDown tsd) ? tsd.Name : "";
+			bool flag = object.Equals(senderName, "MenuText");
 			if (flag)
 			{
 				this.OpenATMenu();
@@ -2378,28 +2243,29 @@ namespace MacroEditor
 			bool enabled = this.MenuBook.Enabled;
 			if (enabled)
 			{
-				this.MenuBook_Header.Text = Conversions.ToString(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject(this.Contents.Items[this.cbook], " (#"), checked(this.cbook + 1)), ")"));
-				this.MenuBook_Paste.Enabled = (Operators.CompareString(this.InternalClipboardMethod, "Book", false) == 0);
+				this.MenuBook_Header.Text = this.Contents.Items[this.cbook].ToString() + " (#" + checked(this.cbook + 1).ToString() + ")";
+				this.MenuBook_Paste.Enabled = (string.Equals(this.InternalClipboardMethod, "Book", StringComparison.Ordinal));
 			}
 		}
 
 		// Token: 0x06000080 RID: 128 RVA: 0x00007EAC File Offset: 0x000060AC
 		private void MenuRow_Opening(object sender, CancelEventArgs e)
 		{
-			this.MenuRow_Paste.Enabled = (Operators.CompareString(this.InternalClipboardMethod, "Row", false) == 0);
+			this.MenuRow_Paste.Enabled = (string.Equals(this.InternalClipboardMethod, "Row", StringComparison.Ordinal));
 			bool enabled = this.MenuRow.Enabled;
 			if (enabled)
 			{
-				this.MenuRow_Save.Text = Conversions.ToString(Operators.ConcatenateObject("Save Row ", Operators.AddObject(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "sourcecontrol", new object[0], null, null, null), null, "tag", new object[0], null, null, null), 1)));
-				this.MenuRow_CopyLocation.Text = "Copy Location (mcr" + this.KillZero(this.xBook, Conversions.ToInteger(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "sourcecontrol", new object[0], null, null, null), null, "tag", new object[0], null, null, null))) + ".dat)";
-				this.MenuRow_CopyLocation.Tag = "mcr" + this.KillZero(this.xBook, Conversions.ToInteger(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "sourcecontrol", new object[0], null, null, null), null, "tag", new object[0], null, null, null))) + ".dat";
+				int rowTag = Convert.ToInt32(((ContextMenuStrip)sender).SourceControl.Tag);
+				this.MenuRow_Save.Text = "Save Row " + (rowTag + 1).ToString();
+				this.MenuRow_CopyLocation.Text = "Copy Location (mcr" + MacroEditorUtils.GetMacroFileSuffix(this.xBook, rowTag) + ".dat)";
+				this.MenuRow_CopyLocation.Tag = "mcr" + MacroEditorUtils.GetMacroFileSuffix(this.xBook, rowTag) + ".dat";
 			}
 		}
 
 		// Token: 0x06000081 RID: 129 RVA: 0x00007FE7 File Offset: 0x000061E7
 		private void MenuMacro_Opening(object sender, CancelEventArgs e)
 		{
-			this.MenuMacro_Paste.Enabled = (Operators.CompareString(this.InternalClipboardMethod, "Macro", false) == 0);
+			this.MenuMacro_Paste.Enabled = (string.Equals(this.InternalClipboardMethod, "Macro", StringComparison.Ordinal));
 		}
 
 		// Token: 0x06000082 RID: 130 RVA: 0x0000800C File Offset: 0x0000620C
@@ -2432,7 +2298,7 @@ namespace MacroEditor
 						}
 						else
 						{
-							Interaction.MsgBox("You must select 10 files.", MsgBoxStyle.OkOnly, null);
+							MessageBox.Show("You must select 10 files.", "Macro Editor", MessageBoxButtons.OK);
 						}
 					}
 				}
@@ -2467,7 +2333,7 @@ namespace MacroEditor
 			{
 				'\n'
 			});
-			bool flag = Operators.CompareString(array[0], "Type: Macro", false) == 0;
+			bool flag = string.Equals(array[0], "Type: Macro", StringComparison.Ordinal);
 			checked
 			{
 				if (flag)
@@ -2486,16 +2352,7 @@ namespace MacroEditor
 						bool flag3 = this.CurrentLine == 0;
 						if (flag3)
 						{
-							this.MacroContainer[this.xBook, this.xRow, this.xMacro] = new string[]
-							{
-								"",
-								"",
-								"",
-								"",
-								"",
-								"",
-								""
-							};
+							this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro] = new Macro();
 							int num = array.Length - 1;
 							for (int i = 0; i <= num; i++)
 							{
@@ -2516,16 +2373,7 @@ namespace MacroEditor
 								bool flag6 = num2 == 6;
 								if (flag6)
 								{
-									this.MacroContainer[this.xBook, this.xRow, this.xMacro] = new string[]
-									{
-										"",
-										"",
-										"",
-										"",
-										"",
-										"",
-										""
-									};
+									this.Books[this.xBook].Rows[this.xRow].Macros[this.xMacro] = new Macro();
 									int num3 = array.Length - 1;
 									for (int j = 0; j <= num3; j++)
 									{
@@ -2565,7 +2413,7 @@ namespace MacroEditor
 		// Token: 0x06000085 RID: 133 RVA: 0x000084B0 File Offset: 0x000066B0
 		private void menuText_Copy_Click(object sender, EventArgs e)
 		{
-			bool flag = Conversions.ToBoolean(this.Lines[this.CurrentLine].SelectedText);
+			bool flag = Convert.ToBoolean(this.Lines[this.CurrentLine].SelectedText);
 			if (flag)
 			{
 				Clipboard.SetText(this.Lines[this.CurrentLine].SelectedText);
@@ -2575,7 +2423,7 @@ namespace MacroEditor
 		// Token: 0x06000086 RID: 134 RVA: 0x000084FB File Offset: 0x000066FB
 		private void menuText_Cut_Click(object sender, EventArgs e)
 		{
-			this.menuText_Copy_Click(RuntimeHelpers.GetObjectValue(sender), e);
+			this.menuText_Copy_Click(sender, e);
 			this.Lines[this.CurrentLine].SelectedText = "";
 		}
 
@@ -2605,34 +2453,34 @@ namespace MacroEditor
 							int num3 = 0;
 							do
 							{
-								bool flag2 = this.MacroContainer[i, num2, num3][0].ToLower().Contains(value);
+								bool flag2 = this.Books[i].Rows[num2].Macros[num3][0].ToLower().Contains(value);
 								if (flag2)
 								{
 									dictionary[dictionary.Count] = new string[]
 									{
-										Conversions.ToString(i),
-										Conversions.ToString(num2),
-										Conversions.ToString(num3),
-										Conversions.ToString(0),
-										Conversions.ToString(0),
-										this.MacroContainer[i, num2, num3][0]
+										i.ToString(),
+										num2.ToString(),
+										num3.ToString(),
+										"0",
+										"0",
+										this.Books[i].Rows[num2].Macros[num3][0]
 									};
 								}
 								int num4 = 1;
 								do
 								{
-									string text2 = this.MacroContainer[i, num2, num3][num4];
+									string text2 = this.Books[i].Rows[num2].Macros[num3][num4];
 									bool flag3 = text2.ToLower().Contains(value);
 									if (flag3)
 									{
 										dictionary[dictionary.Count] = new string[]
 										{
-											Conversions.ToString(i),
-											Conversions.ToString(num2),
-											Conversions.ToString(num3),
-											Conversions.ToString(num4),
-											Conversions.ToString(0),
-											this.MacroContainer[i, num2, num3][num4]
+											i.ToString(),
+											num2.ToString(),
+											num3.ToString(),
+											num4.ToString(),
+											"0",
+											this.Books[i].Rows[num2].Macros[num3][num4]
 										};
 									}
 									num4++;
@@ -2648,25 +2496,18 @@ namespace MacroEditor
 					bool flag4 = dictionary.Count > 1;
 					if (flag4)
 					{
-						this.SearchResults.Hide();
+						this.SearchResults?.Hide();
 						this.SearchResults = new Assessment();
-						try
+						this.SearchResults.SetNavigateCallback((b, r, m) => this.FindMacro(b, r, m));
+						foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
 						{
-							foreach (KeyValuePair<int, string[]> keyValuePair in dictionary)
-							{
-								this.SearchResults.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.White, Color.Black);
-							}
-						}
-						finally
-						{
-							Dictionary<int, string[]>.Enumerator enumerator;
-							((IDisposable)enumerator).Dispose();
+							this.SearchResults.AddResult(keyValuePair.Value[0], keyValuePair.Value[1], keyValuePair.Value[2], keyValuePair.Value[3], keyValuePair.Value[4], keyValuePair.Value[5], Color.White, Color.Black);
 						}
 						this.SearchResults.Show(this);
 					}
 					else
 					{
-						Interaction.MsgBox("No matches found in any macro.", MsgBoxStyle.OkOnly, null);
+						MessageBox.Show("No matches found in any macro.", "Macro Editor", MessageBoxButtons.OK);
 					}
 				}
 			}
@@ -2677,13 +2518,13 @@ namespace MacroEditor
 		{
 			string input = "Type: Book BLM\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizzaja\n/ma \"Blizzaja\" <stnpc>\n\nMacro:\nFiraja\n/ma \"Firaja\" <stnpc>\n\nMacro:\nWaterja\n/ma \"Waterja\" <stnpc>\n\nMacro:\nThundaja\n/ma \"Thundaja\" <stnpc>\n\nMacro:\nStoneja\n/ma \"Stoneja\" <stnpc>\n\nMacro:\nAeroja\n/ma \"Aeroja\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\n\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizard6\n/ma \"Blizzard VI\" <stnpc>\n\nMacro:\nFire6\n/ma \"Fire VI\" <stnpc>\n\nMacro:\nWater6\n/ma \"Water VI\" <stnpc>\n\nMacro:\nThunder6\n/ma \"Thunder VI\" <stnpc>\n\nMacro:\nStone6\n/ma \"Stone VI\" <stnpc>\n\nMacro:\nAero6\n/ma \"Aero VI\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\n\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizard5\n/ma \"Blizzard V\" <stnpc>\n\nMacro:\nFire5\n/ma \"Fire V\" <stnpc>\n\nMacro:\nWater5\n/ma \"Water V\" <stnpc>\n\nMacro:\nThunder5\n/ma \"Thunder V\" <stnpc>\n\nMacro:\nStone5\n/ma \"Stone V\" <stnpc>\n\nMacro:\nAero5\n/ma \"Aero V\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizard4\n/ma \"Blizzard IV\" <stnpc>\n\nMacro:\nFire4\n/ma \"Fire IV\" <stnpc>\n\nMacro:\nWater4\n/ma \"Water IV\" <stnpc>\n\nMacro:\nThunder4\n/ma \"Thunder IV\" <stnpc>\n\nMacro:\nStone4\n/ma \"Stone IV\" <stnpc>\n\nMacro:\nAero4\n/ma \"Aero IV\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizard3\n/ma \"Blizzard III\" <stnpc>\n\nMacro:\nFire3\n/ma \"Fire III\" <stnpc>\n\nMacro:\nWater3\n/ma \"Water III\" <stnpc>\n\nMacro:\nThunder3\n/ma \"Thunder III\" <stnpc>\n\nMacro:\nStone 3\n/ma \"Stone III\" <stnpc>\n\nMacro:\nAero3\n/ma \"Aero III\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBliz2\n/ma \"Blizzard II\" <stnpc>\n\nMacro:\nFire2\n/ma \"Fire II\" <stnpc>\n\nMacro:\nWater2\n/ma \"Water II\" <stnpc>\n\nMacro:\nThun2\n/ma \"Thunder II\" <stnpc>\n\nMacro:\nStone2\n/ma \"Stone II\" <stnpc>\n\nMacro:\nAero2\n/ma \"Aero II\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nSleep2\n/ma \"Sleep II\" <stnpc>\n\nMacro:\nBreak\n/ma \"Break\" <stnpc>\n\nMacro:\nSleep\n/ma \"Sleep\" <stnpc>\n\nMacro:\nGravity\n/ma \"Gravity\" <stnpc>\n\nMacro:\nDistract\n/ma \"Distract\" <stnpc>\n\nMacro:\nFrazzle\n/ma \"Frazzle\" <stnpc>\n\nMacro:\nSleepga\n/ma \"Sleepga\" <stnpc>\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nSleep2\n/ma \"Sleep II\" <stnpc>\n\nMacro:\nFiraga\n/ma \"Firaga\" <stnpc>\n\nMacro:\nWaterga\n/ma \"Waterga\" <stnpc>\n\nMacro:\nGravity\n/ma \"Gravity\" <stnpc>\n\nMacro:\nStonega\n/ma \"Stonega\" <stnpc>\n\nMacro:\nAeroga\n/ma \"Aeroga\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizzag\n/ma \"Blizzaga II\" <stnpc>\n\nMacro:\nFiraga2\n/ma \"Firaga II\" <stnpc>\n\nMacro:\nWaterga2\n/ma \"Waterga II\" <stnpc>\n\nMacro:\nThundag2\n/ma \"Thundaga II\" <stnpc>\n\nMacro:\nStonega2\n/ma \"Stonega II\" <stnpc>\n\nMacro:\nAeroga2\n/ma \"Aeroga II\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nHome\n/macro set 1\n\nMacro:\nBlizzag3\n/ma \"Blizzaga III\" <stnpc>\n\nMacro:\nFiraga3\n/ma \"Firaga III\" <stnpc>\n\nMacro:\nWaterga3\n/ma \"Waterga III\" <stnpc>\n\nMacro:\nThundag3\n/ma \"Thundaga III\" <stnpc>\n\nMacro:\nStonega3\n/ma \"Stonega III\" <stnpc>\n\nMacro:\nAeroga3\n/ma \"Aeroga III\" <stnpc>\n\nMacro:\nCCs\n/macro set 7\n\nMacro:\nBreakga\n/ma \"Breakga\" <stnpc>\n\nMacro:\nSleepga2\n/ma \"Sleepga II\" <stnpc>\n\nMacro:\nCure IV\n/ma \"Cure IV\" <stal>\n\nMacro:\nCure III\n/ma \"Cure III\" <stal>\n\nMacro:\n\n\nMacro:\nAquaveil\n/ma \"Aquaveil\" <me>\n\nMacro:\nBlink\n/ma \"Blink\" <me>\n\nMacro:\nStoneski\n/ma \"Stoneskin\" <me>\n\nMacro:\nRefresh\n/ma \"Refresh\" <stpt>\n\nMacro:\nHaste\n/ma \"Haste\" <stal>\n\nMacro:\nAspirs\n/ma \"Aspir III\" <stnpc>\n/ma \"Aspir II\" <lastst>\n/ma \"Aspir\" <lastst>\n\nMacro:\nStun\n/ma \"Stun\" <stnpc>\n\nRow, Macro:\nEndBook (Please do not remove empty lines as they're part of the sharing format). If you experience problems pasting, please make sure to download an up to date version.";
 			Regex regex = new Regex("(\\r\\n|\\r|\\n)");
-			this.MenuBook_PasteClipboard_Click(RuntimeHelpers.GetObjectValue(sender), e, regex.Replace(input, "\n"));
+			this.MenuBook_PasteClipboard_Click(sender, e, regex.Replace(input, "\n"));
 		}
 
 		// Token: 0x0600008A RID: 138 RVA: 0x000087F4 File Offset: 0x000069F4
 		private void MenuBook_SaveFiles_Click(object sender, EventArgs e)
 		{
-			int num = (int)MessageBox.Show(Conversions.ToString(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject(Operators.ConcatenateObject("This will save all macros for Book ", this.Contents.Items[this.cbook]), " to file."), '\n'), '\n'), "Proceed?"), '\n'), '\n'), "This will also update the in-memory backup that can"), '\n'), "be restored with Revert from Main, Book, Row, & Macro menus.")), "Macro Editor", MessageBoxButtons.YesNo);
+			int num = (int)MessageBox.Show("This will save all macros for Book " + this.Contents.Items[this.cbook].ToString() + " to file.\n\nProceed?\n\nThis will also update the in-memory backup that can\nbe restored with Revert from Main, Book, Row, & Macro menus.", "Macro Editor", MessageBoxButtons.YesNo);
 			bool flag = num == 6;
 			checked
 			{
@@ -2697,7 +2538,7 @@ namespace MacroEditor
 						{
 							break;
 						}
-						this.UpdateStatusBar(Conversions.ToString(this.Contents.Items[this.cbook]), "Writing " + this.KillZero(this.cbook, num2) + ".dat");
+						this.UpdateStatusBar(this.Contents.Items[this.cbook].ToString(), "Writing " + MacroEditorUtils.GetMacroFileSuffix(this.cbook, num2) + ".dat");
 						this.StatusBar.Refresh();
 						num2++;
 						if (num2 > 9)
@@ -2705,7 +2546,7 @@ namespace MacroEditor
 							return;
 						}
 					}
-					this.UpdateStatusBar("Error!", "An error occurred while writing " + this.KillZero(this.cbook, num2) + ".dat");
+					this.UpdateStatusBar("Error!", "An error occurred while writing " + MacroEditorUtils.GetMacroFileSuffix(this.cbook, num2) + ".dat");
 				}
 			}
 		}
@@ -2721,19 +2562,19 @@ namespace MacroEditor
 				this.UpdateStatusBar("", "Always On Top Set While Feature Tour Is running.");
 				this.MenuBook.Enabled = false;
 				this.MenuBook.Show(new Point(base.Left + 50, base.Top + 100));
-				Interaction.MsgBox("This Is the macro book menu, operations that can be performed on any book. You can interact with books without selecting them.", MsgBoxStyle.OkOnly, null);
+				MessageBox.Show("This Is the macro book menu, operations that can be performed on any book. You can interact with books without selecting them.", "Macro Editor", MessageBoxButtons.OK);
 				this.MenuRow.Enabled = false;
 				this.MenuRow.Show(new Point(base.Left + 160, base.Top + 400));
-				Interaction.MsgBox("The row menu, you can also interact with rows without selecting them.", MsgBoxStyle.OkOnly, null);
+				MessageBox.Show("The row menu, you can also interact with rows without selecting them.", "Macro Editor", MessageBoxButtons.OK);
 				this.MenuHandler.Enabled = false;
 				this.MenuHandler.Show(new Point(base.Left + 230, base.Top + 85));
-				Interaction.MsgBox("Individual menus Control-side and Alternate side.", MsgBoxStyle.OkOnly, null);
+				MessageBox.Show("Individual menus Control-side and Alternate side.", "Macro Editor", MessageBoxButtons.OK);
 				this.MenuMacro.Enabled = false;
 				this.MenuMacro.Show(new Point(base.Left + 800, base.Top + 100));
-				Interaction.MsgBox("The macro menu. If you copy to clipboard, you can share online or select a macro and immediately press Ctrl+V.", MsgBoxStyle.OkOnly, null);
+				MessageBox.Show("The macro menu. If you copy to clipboard, you can share online or select a macro and immediately press Ctrl+V.", "Macro Editor", MessageBoxButtons.OK);
 				this.MenuText.Enabled = false;
 				this.MenuText.Show(new Point(base.Left + 800, base.Top + 285));
-				Interaction.MsgBox("This menu can be accessed by right-clicking a text box or pressing F2 While inside a textbox.", MsgBoxStyle.OkOnly, null);
+				MessageBox.Show("This menu can be accessed by right-clicking a text box or pressing F2 While inside a textbox.", "Macro Editor", MessageBoxButtons.OK);
 				this.MenuText.Hide();
 				this.MenuBook.Enabled = true;
 				this.MenuRow.Enabled = true;
@@ -2749,8 +2590,8 @@ namespace MacroEditor
 		private void MenuBook_RenameBook_Click(object sender, EventArgs e)
 		{
 			this.Contents.SelectedIndexChanged -= this.Contents_SelectedIndexChanged;
-			string text = Interaction.InputBox("Enter book name.", "Macro Editor", Conversions.ToString(this.Contents.SelectedItem), -1, -1);
-			bool flag = Operators.CompareString(text, "", false) != 0;
+			string text = Interaction.InputBox("Enter book name.", "Macro Editor", this.Contents.SelectedItem.ToString(), -1, -1);
+			bool flag = !string.Equals(text, "", StringComparison.Ordinal);
 			if (flag)
 			{
 				this.Contents.Items[this.cbook] = text.Substring(0, Math.Min(15, text.Length));
@@ -2766,15 +2607,16 @@ namespace MacroEditor
 			{
 				if (enabled)
 				{
-					this.MacroMap.Hide();
+					this.MacroMap?.Hide();
 					this.MacroMap = new MacroMapForm();
+					this.MacroMap.SetNavigateCallback((b, r, m) => this.FindMacro(b, r, m));
 					int num = 0;
 					do
 					{
 						int num2 = 0;
 						do
 						{
-							this.MacroMap.Add(this.cbook, num, num2, this.MacroContainer[this.cbook, num, num2]);
+							this.MacroMap.Add(this.cbook, num, num2, this.Books[this.cbook].Rows[num].Macros[num2].ToArray());
 							num2++;
 						}
 						while (num2 <= 19);
@@ -2800,13 +2642,13 @@ namespace MacroEditor
 					int num = 0;
 					do
 					{
-						stringBuilder.Append("[tr][td]Row " + Conversions.ToString(num + 1) + "[/td][/tr][tr]");
+						stringBuilder.Append("[tr][td]Row " + (num + 1).ToString() + "[/td][/tr][tr]");
 						int num2 = 0;
 						do
 						{
-							stringBuilder.Append("[td][b]" + this.MacroContainer[this.cbook, num, num2][0] + "[/b]\n");
-							Array.Copy(this.MacroContainer[this.cbook, num, num2], 1, array, 0, 1);
-							stringBuilder.Append(Strings.Join(array, "\n") + "[/td]\n");
+							stringBuilder.Append("[td][b]" + this.Books[this.cbook].Rows[num].Macros[num2][0] + "[/b]\n");
+							Array.Copy(this.Books[this.cbook].Rows[num].Macros[num2].ToArray(), 1, array, 0, 1);
+							stringBuilder.Append(string.Join("\n", array) + "[/td]\n");
 							bool flag = num2 == 9;
 							if (flag)
 							{
@@ -2832,7 +2674,27 @@ namespace MacroEditor
 			bool flag = num == 6;
 			if (flag)
 			{
-				bool flag2 = !this.WriteFile(this.xBook, this.xRow);
+				bool flag2;
+				if (this.xBook <= 38 && this.variableEngine.HasVariables)
+				{
+					// Resolve placeholders for this row before writing
+					MacroRow resolvedRow = this.Books[this.xBook].Rows[this.xRow].Clone();
+					foreach (Macro macro in resolvedRow.Macros)
+					{
+						macro.Title = this.variableEngine.ResolvePlaceholders(macro.Title);
+						for (int i = 0; i < macro.Lines.Count; i++)
+						{
+							macro.Lines[i] = this.variableEngine.ResolvePlaceholders(macro.Lines[i]);
+						}
+					}
+					flag2 = !this.fileManager.WriteRow(this.macropath, this.xBook, this.xRow,
+						resolvedRow, this.BooksPreserved[this.xBook].Rows[this.xRow], 19);
+				}
+				else
+				{
+					// Book 40 or no variables — write directly
+					flag2 = !this.WriteFile(this.xBook, this.xRow);
+				}
 				if (flag2)
 				{
 					this.UpdateStatusBar("Error", "An error occurred while writing files.");
@@ -2843,7 +2705,7 @@ namespace MacroEditor
 		// Token: 0x06000090 RID: 144 RVA: 0x00008E1A File Offset: 0x0000701A
 		private void MenuRow_CopyLocation_Click(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Conversions.ToString(Operators.ConcatenateObject(this.macropath + "\\", NewLateBinding.LateGet(sender, null, "tag", new object[0], null, null, null))));
+			Clipboard.SetText(this.macropath + "\\" + ((ToolStripMenuItem)sender).Tag.ToString());
 		}
 
 		// Token: 0x06000091 RID: 145 RVA: 0x00008E54 File Offset: 0x00007054
@@ -2870,7 +2732,7 @@ namespace MacroEditor
 			{
 				destination.xBook = this.xBook;
 				destination.xRow = this.xRow;
-				destination.tMacro = Conversions.ToInteger(NewLateBinding.LateGet(NewLateBinding.LateGet(NewLateBinding.LateGet(sender, null, "GetCurrentParent", new object[0], null, null, null), null, "SourceControl", new object[0], null, null, null), null, "tag", new object[0], null, null, null));
+				destination.tMacro = Convert.ToInt32(((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag);
 				destination.ShowDialog();
 			}
 		}
@@ -2905,7 +2767,7 @@ namespace MacroEditor
 			if (flag)
 			{
 				string name = this.MenuBook.GetItemAt(checked(new Point(Cursor.Position.X - this.MenuBook.Left, Cursor.Position.Y - this.MenuBook.Top))).Name;
-				bool flag2 = Operators.CompareString(name, "MenuBook_Header", false) == 0;
+				bool flag2 = string.Equals(name, "MenuBook_Header", StringComparison.Ordinal);
 				if (flag2)
 				{
 					e.Cancel = true;
@@ -3321,7 +3183,7 @@ namespace MacroEditor
 			{
 				EventHandler value2 = delegate(object a0, EventArgs a1)
 				{
-					this.MenuMacro_PasteClipboard_Click(RuntimeHelpers.GetObjectValue(a0), a1, -1);
+					this.MenuMacro_PasteClipboard_Click(a0, a1, -1);
 				};
 				ToolStripMenuItem menuMacro_PasteClipboard = this._MenuMacro_PasteClipboard;
 				if (menuMacro_PasteClipboard != null)
@@ -3656,7 +3518,7 @@ namespace MacroEditor
 			{
 				EventHandler value2 = delegate(object a0, EventArgs a1)
 				{
-					this.MenuBook_PasteClipboard_Click(RuntimeHelpers.GetObjectValue(a0), a1, "");
+					this.MenuBook_PasteClipboard_Click(a0, a1, "");
 				};
 				ToolStripMenuItem menuBook_PasteClipboard = this._MenuBook_PasteClipboard;
 				if (menuBook_PasteClipboard != null)
@@ -4071,7 +3933,7 @@ namespace MacroEditor
 			{
 				EventHandler value2 = delegate(object a0, EventArgs a1)
 				{
-					this.menuText_Paste_Click(RuntimeHelpers.GetObjectValue(a0), a1, 0);
+					this.menuText_Paste_Click(a0, a1, 0);
 				};
 				ToolStripMenuItem menuText_Paste = this._menuText_Paste;
 				if (menuText_Paste != null)
@@ -4514,6 +4376,161 @@ namespace MacroEditor
 		// (set) Token: 0x06000129 RID: 297 RVA: 0x0000B9E4 File Offset: 0x00009BE4
 		internal virtual TextBox Warning { get; [MethodImpl(MethodImplOptions.Synchronized)] set; }
 
+
+		// Backing fields for WithEvents properties
+		[CompilerGenerated]
+		private ContextMenuStrip _MenuMacro;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Cut;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Copy;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Paste;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Revert;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Clear;
+
+		[CompilerGenerated]
+		private ContextMenuStrip _MenuRow;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Cut;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Copy;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Paste;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Clear;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Revert;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_CopyClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_PasteClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_CopyClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_PasteClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMain_evaluate;
+
+		[CompilerGenerated]
+		private ContextMenuStrip _MenuBook;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Cut;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Copy;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Paste;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Clear;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Revert;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_CopyClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_PasteClipboard;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHandler_ClearSide;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHandler_CutSide;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHandler_CopySide;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHandler_PasteSide;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _File_Exit;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _File_Open;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _File_SaveRow;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _File_SaveAll;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_SaveBookNames;
+
+		[CompilerGenerated]
+		private ContextMenuStrip _MenuText;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _menuText_Cut;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _menuText_Copy;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _menuText_Paste;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Import;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Import;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMain_Search;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_Wizard_BLM;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_SaveFiles;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHelp_Help;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuHelp_FeatureTour;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_RenameBook;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_MacroMap;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_Save;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuRow_CopyLocation;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuBook_CopyMacroMap;
+
+		[CompilerGenerated]
+		private ToolStripMenuItem _MenuMacro_Destination;
+
 		// Token: 0x0400001F RID: 31
 		private const int WM_CUT = 768;
 
@@ -4545,10 +4562,10 @@ namespace MacroEditor
 		public string importpath;
 
 		// Token: 0x04000029 RID: 41
-		public string[,,][] MacroContainer;
+		public List<MacroBook> Books;
 
 		// Token: 0x0400002A RID: 42
-		public string[,,][] MacroPreserved;
+		public List<MacroBook> BooksPreserved;
 
 		// Token: 0x0400002B RID: 43
 		public ListBox Contents;
@@ -4578,25 +4595,19 @@ namespace MacroEditor
 		public int handlerEnd;
 
 		// Token: 0x04000034 RID: 52
-		public string[] Macroholder;
+		public Macro Macroholder;
 
 		// Token: 0x04000035 RID: 53
-		public string[][] RowHolder;
+		public Macro[] RowHolder;
 
 		// Token: 0x04000036 RID: 54
-		public string[,][] BookHolder;
+		public Macro[,] BookHolder;
 
 		// Token: 0x04000037 RID: 55
 		public int debuglimit;
 
 		// Token: 0x04000038 RID: 56
 		public string copiedbookname;
-
-		// Token: 0x04000039 RID: 57
-		public ToolStripMenuItem ATmenu;
-
-		// Token: 0x0400003A RID: 58
-		public Dictionary<string, string> ATObject;
 
 		// Token: 0x0400003B RID: 59
 		public int CurrentLine;
@@ -4610,14 +4621,17 @@ namespace MacroEditor
 		// Token: 0x0400003E RID: 62
 		public Resizer rs;
 
-		// Token: 0x0400003F RID: 63
-		public Regex ATReadable;
-
-		// Token: 0x04000040 RID: 64
-		public Regex ATWritable;
-
 		// Token: 0x04000041 RID: 65
 		public Regex lfs;
+
+		// Token: 0x04000045 RID: 69
+		private AutoTranslateEncoder atEncoder;
+
+		// Field: MacroFileManager for file I/O operations
+		private MacroFileManager fileManager;
+
+		// Field: Variable substitution engine for template variables in Book 40
+		private VariableSubstitutionEngine variableEngine;
 
 		// Token: 0x04000042 RID: 66
 		public Assessment Evaluation;
@@ -4627,5 +4641,40 @@ namespace MacroEditor
 
 		// Token: 0x04000044 RID: 68
 		public MacroMapForm MacroMap;
+
+		/// <summary>
+		/// Converts index 10 to "0" for FFXI display (10th macro shows as 0).
+		/// </summary>
+		private string FormatMacroIndex(int index)
+		{
+			if (index != 10)
+				return index.ToString();
+			else
+				return "0";
+		}
+
+		/// <summary>
+		/// Validates that clipboard data matches the expected paste format.
+		/// Returns true if valid, false otherwise.
+		/// </summary>
+		private bool VerifyClipboardFormat(string expectedType, Array data)
+		{
+			bool valid = ((string[])data)[0]
+				.ToString().Trim().StartsWith("Type: " + expectedType)
+				& ((string[])data)[checked(data.Length - 1)]
+				.ToString().Trim().StartsWith("End" + expectedType);
+
+			if (valid)
+			{
+				return true;
+			}
+			else
+			{
+				MessageBox.Show(
+					"Clipboard does not contain a " + expectedType + ".",
+					"Macro Editor", MessageBoxButtons.OK);
+				return false;
+			}
+		}
 	}
 }

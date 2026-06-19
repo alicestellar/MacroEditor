@@ -1,20 +1,23 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-using MacroEditor.My;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace MacroEditor
 {
 	// Token: 0x02000008 RID: 8
-	[DesignerGenerated]
 	public partial class Assessment : Form
 	{
+		private Action<int, int, int> navigateCallback;
+
+		public void SetNavigateCallback(Action<int, int, int> callback)
+		{
+			this.navigateCallback = callback;
+		}
+
 		// Token: 0x06000017 RID: 23 RVA: 0x00002368 File Offset: 0x00000568
 		public Assessment()
 		{
@@ -115,22 +118,24 @@ namespace MacroEditor
 		// Token: 0x06000027 RID: 39 RVA: 0x0000284C File Offset: 0x00000A4C
 		public object AddResult(object b, object r, object m, object l, object itype, object description, object bgcolor, object fcolor)
 		{
-			bool flag = Operators.ConditionalCompareObjectEqual(l, 0, false);
+			string bookName = "Book " + (Convert.ToInt32(b) + 1);
+
+			bool flag = object.Equals(l, 0);
 			if (flag)
 			{
 				this.Results.Items.Add(new ListViewItem(new string[]
 				{
 					string.Format("B: {0} ({1}), R: {2}, M: {3}, L: {4}", new object[]
 					{
-						MyProject.Forms.MainForm.Contents.Items[Conversions.ToInteger(b)],
-						Operators.AddObject(b, 1),
-						Operators.AddObject(r, 1),
-						Operators.AddObject(m, 1),
+						bookName,
+						(Convert.ToInt32(b) + 1),
+						(Convert.ToInt32(r) + 1),
+						(Convert.ToInt32(m) + 1),
 						"Title"
 					}),
-					this.iTypes[Conversions.ToInteger(itype)],
-					Conversions.ToString(description),
-					Conversions.ToString(itype)
+					this.iTypes[Convert.ToInt32(itype)],
+					description.ToString(),
+					itype.ToString()
 				}));
 			}
 			else
@@ -139,15 +144,15 @@ namespace MacroEditor
 				{
 					string.Format("B: {0} ({1}), R: {2}, M: {3}, L: {4}", new object[]
 					{
-						MyProject.Forms.MainForm.Contents.Items[Conversions.ToInteger(b)],
-						Operators.AddObject(b, 1),
-						Operators.AddObject(r, 1),
-						Operators.AddObject(m, 1),
-						Operators.AddObject(l, 1)
+						bookName,
+						(Convert.ToInt32(b) + 1),
+						(Convert.ToInt32(r) + 1),
+						(Convert.ToInt32(m) + 1),
+						(Convert.ToInt32(l) + 1)
 					}),
-					this.iTypes[Conversions.ToInteger(itype)],
-					Conversions.ToString(description),
-					Conversions.ToString(itype)
+					this.iTypes[Convert.ToInt32(itype)],
+					description.ToString(),
+					itype.ToString()
 				}));
 			}
 			checked
@@ -165,20 +170,70 @@ namespace MacroEditor
 			}
 		}
 
+		/// <summary>
+		/// Overload that accepts the book name directly (no MyProject.Forms lookup needed).
+		/// </summary>
+		public object AddResult(string bookName, int bookIndex, int rowIndex, int macroIndex, int lineIndex, object itype, object description, object bgcolor, object fcolor)
+		{
+			bool flag = lineIndex == 0;
+			if (flag)
+			{
+				this.Results.Items.Add(new ListViewItem(new string[]
+				{
+					string.Format("B: {0} ({1}), R: {2}, M: {3}, L: {4}", new object[]
+					{
+						bookName,
+						bookIndex + 1,
+						rowIndex + 1,
+						macroIndex + 1,
+						"Title"
+					}),
+					this.iTypes[Convert.ToInt32(itype)],
+					description.ToString(),
+					itype.ToString()
+				}));
+			}
+			else
+			{
+				this.Results.Items.Add(new ListViewItem(new string[]
+				{
+					string.Format("B: {0} ({1}), R: {2}, M: {3}, L: {4}", new object[]
+					{
+						bookName,
+						bookIndex + 1,
+						rowIndex + 1,
+						macroIndex + 1,
+						lineIndex + 1
+					}),
+					this.iTypes[Convert.ToInt32(itype)],
+					description.ToString(),
+					itype.ToString()
+				}));
+			}
+			checked
+			{
+				this.Results.Items[this.Results.Items.Count - 1].Tag = new object[]
+				{
+					bookIndex,
+					rowIndex,
+					macroIndex,
+					lineIndex
+				};
+				this.Results.Items[this.Results.Items.Count - 1].BackColor = ((bgcolor != null) ? ((Color)bgcolor) : default(Color));
+				this.Results.Items[this.Results.Items.Count - 1].ForeColor = ((fcolor != null) ? ((Color)fcolor) : default(Color));
+				return true;
+			}
+		}
+
 		// Token: 0x06000028 RID: 40 RVA: 0x00002A9C File Offset: 0x00000C9C
 		private void Results_DoubleClick(object sender, EventArgs e)
 		{
-			object objectValue = RuntimeHelpers.GetObjectValue(this.Results.Items[this.Results.SelectedIndices[0]].Tag);
-			MyProject.Forms.MainForm.FindMacro(Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				0
-			}, null)), Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				1
-			}, null)), Conversions.ToInteger(NewLateBinding.LateIndexGet(objectValue, new object[]
-			{
-				2
-			}, null)));
+			object[] tagArray = (object[])this.Results.Items[this.Results.SelectedIndices[0]].Tag;
+			if (this.navigateCallback != null)
+				this.navigateCallback(
+					Convert.ToInt32(tagArray[0]),
+					Convert.ToInt32(tagArray[1]),
+					Convert.ToInt32(tagArray[2]));
 		}
 
 		// Token: 0x06000029 RID: 41 RVA: 0x00002B38 File Offset: 0x00000D38
@@ -188,10 +243,10 @@ namespace MacroEditor
 			if (flag)
 			{
 				int index = this.Results.GetItemAt(e.X, e.Y).Index;
-				bool flag2 = index >= 0 & Conversions.ToDouble(this.Results.Items[index].SubItems[3].Text) > 0.0;
+				bool flag2 = index >= 0 & Convert.ToDouble(this.Results.Items[index].SubItems[3].Text) > 0.0;
 				if (flag2)
 				{
-					Interaction.MsgBox(this.Results.Items[index].SubItems[1].Text + "\n\n" + this.itypes_explanation[Conversions.ToInteger(this.Results.Items[index].SubItems[3].Text)], MsgBoxStyle.OkOnly, null);
+					MessageBox.Show(this.Results.Items[index].SubItems[1].Text + "\n\n" + this.itypes_explanation[Convert.ToInt32(this.Results.Items[index].SubItems[3].Text)], "Macro Editor", MessageBoxButtons.OK);
 				}
 			}
 		}
@@ -200,6 +255,10 @@ namespace MacroEditor
 		private void Results_ColumnClick(object sender, ColumnClickEventArgs e)
 		{
 		}
+
+		// Token: 0x04000011 RID: 17
+		[CompilerGenerated]
+		private ListView _Results;
 
 		// Token: 0x04000012 RID: 18
 		private Panel output;

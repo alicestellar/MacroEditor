@@ -1,16 +1,14 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace MacroEditor
 {
 	// Token: 0x0200000C RID: 12
-	[DesignerGenerated]
 	public partial class Help : Form
 	{
 		// Token: 0x06000137 RID: 311 RVA: 0x0000BD61 File Offset: 0x00009F61

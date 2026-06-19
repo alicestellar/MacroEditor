@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.CodeDom.Compiler;
 using System.ComponentModel;
 using System.Configuration;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Microsoft.VisualBasic.CompilerServices;
+
 
 namespace MacroEditor.My
 {
@@ -36,7 +36,6 @@ namespace MacroEditor.My
 				if (flag)
 				{
 					object obj = MySettings.addedHandlerLockObject;
-					ObjectFlowControl.CheckForSyncLockOnValueType(obj);
 					lock (obj)
 					{
 						bool flag3 = !MySettings.addedHandler;
@@ -61,7 +60,7 @@ namespace MacroEditor.My
 		{
 			get
 			{
-				return Conversions.ToString(this["UserDirectory"]);
+				return (string)this["UserDirectory"];
 			}
 			set
 			{
@@ -79,7 +78,7 @@ namespace MacroEditor.My
 		{
 			get
 			{
-				return Conversions.ToString(this["WindowerDirectory"]);
+				return (string)this["WindowerDirectory"];
 			}
 			set
 			{
@@ -94,6 +93,6 @@ namespace MacroEditor.My
 		private static bool addedHandler;
 
 		// Token: 0x0400000A RID: 10
-		private static object addedHandlerLockObject = RuntimeHelpers.GetObjectValue(new object());
+		private static object addedHandlerLockObject = new object();
 	}
 }

@@ -1,7 +1,6 @@
 ﻿namespace MacroEditor
 {
 	// Token: 0x02000009 RID: 9
-	[global::Microsoft.VisualBasic.CompilerServices.DesignerGenerated]
 	public partial class Destination : global::System.Windows.Forms.Form
 	{
 		// Token: 0x0600002C RID: 44 RVA: 0x00002C9C File Offset: 0x00000E9C
