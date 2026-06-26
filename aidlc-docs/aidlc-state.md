@@ -50,10 +50,11 @@
 - [x] Unit 8: Scrollbar UI - Complete (native WinForms behavior, no code changes needed)
 - [ ] ~~Unit 4: config.json Support~~ — ELIMINATED (variables stored in Book 40 instead)
 - [x] Unit 5: Template Variables (redesigned — source: Book 40 variable macros) - Committed (0c79267, c372887)
-- [ ] Unit 6: Export with Variable Substitution (redesigned — reads destination Book 40)
+- [x] Unit 6: Export with Variable Substitution (redesigned — reads destination Book 40) - Committed 5288d43
 - [ ] Unit 9: Undo/Redo
 - [ ] Unit 10: Macro Map Visual Enhancements
 - [ ] Unit 11: Editable Macro Map
 - [ ] Unit 12: Text File Import/Export
 - [x] Unit 13: Broadcast Edit (Copy to All Books) - Committed 0330f59
 - [ ] Unit 14: Compiler Warning Cleanup (low priority — after all features)
+- [x] Bugfix: ReadMacroRow line offset (Q¥ garble) — read line content at byte 4 not 0

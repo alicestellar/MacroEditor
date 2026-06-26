@@ -106,14 +106,17 @@ namespace MacroEditor
                         "",
                         ""
                     });
-                    int num5 = 0;
+                    // Line content begins at offset 4 within each 380-byte macro block
+                    // (offsets 0-3 are a 4-byte header). Reading from offset 0 would pull
+                    // those header bytes into line 1 as garbled text (e.g. "Q¥").
+                    int num5 = 4;
                     do
                     {
                         row.Macros[num2][num4] = this.atEncoder.Decode(this.lfs.Replace(text.Substring(j + num5, 60).Trim(), ""));
                         num4++;
                         num5 += 61;
                     }
-                    while (num5 <= 360);
+                    while (num5 <= 364);
                     num2++;
                 }
                 return row;

@@ -359,3 +359,9 @@ Both features will be implemented.
 **Context**: CONSTRUCTION - Unit 6, Code Generation.
 
 ---
+
+## Bug Fix - ReadMacroRow Line Offset (Q¥ garble)
+**Timestamp**: 2026-06-26T12:00:00Z
+**User Input**: "Okay, let's go ahead and implement the fix you suggested."
+**AI Response**: Diagnosed via hex inspection of mcr399.dat / mcr.dat.backup in folder 167bf9b. Root cause: ReadMacroRow reads each macro's 6 line fields starting at offset 0,61,122,183,244,305 but WriteRow (and FFXI itself) place line content at offset 4,65,126,187,248,309 (after a 4-byte header). The 4-byte misalignment caused stray header bytes (e.g. 60 51 A4 = "Q¥") to be pulled into line 1 and baked into text on save. Confirmed FFXI 'Follow' macro stores "/target <me>" at offset 4. Fix: change line read start offset from 0 to 4 in ReadMacroRow. Header is null for all real macros (verified), so no metadata is lost by the existing zero-on-write behavior.
+**Context**: CONSTRUCTION - Bug fix in MacroFileManager.ReadMacroRow. Logged as Unit 15.
