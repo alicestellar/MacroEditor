@@ -365,3 +365,15 @@ Both features will be implemented.
 **User Input**: "Okay, let's go ahead and implement the fix you suggested."
 **AI Response**: Diagnosed via hex inspection of mcr399.dat / mcr.dat.backup in folder 167bf9b. Root cause: ReadMacroRow reads each macro's 6 line fields starting at offset 0,61,122,183,244,305 but WriteRow (and FFXI itself) place line content at offset 4,65,126,187,248,309 (after a 4-byte header). The 4-byte misalignment caused stray header bytes (e.g. 60 51 A4 = "Q¥") to be pulled into line 1 and baked into text on save. Confirmed FFXI 'Follow' macro stores "/target <me>" at offset 4. Fix: change line read start offset from 0 to 4 in ReadMacroRow. Header is null for all real macros (verified), so no metadata is lost by the existing zero-on-write behavior.
 **Context**: CONSTRUCTION - Bug fix in MacroFileManager.ReadMacroRow. Logged as Unit 15.
+
+## Unit 10 - Macro Map Visual Enhancements Start
+**Timestamp**: 2026-06-26T12:30:00Z
+**User Input**: "Let's start on unit 10. We'll table unit 9 for now. I want to make sure all the other features are done before we worry about undo, redo, and what COUNTS as something we should add to the stack."
+**AI Response**: Beginning Unit 10 (Macro Map Visual Enhancements). Unit 9 (Undo/Redo) deferred until other features complete. Reading current MacroMapForm to plan functional design.
+**Context**: CONSTRUCTION - Unit 10. Unit 9 deferred.
+
+## Unit 10 - Complete
+**Timestamp**: 2026-06-26T13:30:00Z
+**User Input**: "Perfect. Go ahead and commit and push. This unit is done. I have to go get ready for dinner."
+**AI Response**: Unit 10 (Macro Map Visual Enhancements) complete and tested. Color-coded Ctrl (blue)/Alt (red) labels, pinned CTRL/ALT header with divider, Prev/Next page buttons, window sized to one page. Snap-scrolling dropped per user; dividers between pages dropped. Committing and pushing.
+**Context**: CONSTRUCTION - Unit 10 done. Remaining: Unit 11 (Editable Macro Map), Unit 12 (Text Import/Export), Unit 14 (Warning Cleanup). Unit 9 (Undo/Redo) deferred.
