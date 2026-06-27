@@ -603,6 +603,15 @@ namespace MacroEditor
 
 				this.MenuText.Items.Add(new ToolStripMenuItem("Apply Line to All Books", null, this.BroadcastLine_Click));
 
+				// Add "Edit in Macro Map" to the book context menu, just below "Macro Map"
+				var editMapItem = new ToolStripMenuItem("Edit in Macro Map");
+				editMapItem.Click += this.MenuBook_EditMacroMap_Click;
+				int mapIdx = this.MenuBook.Items.IndexOf(this.MenuBook_MacroMap);
+				if (mapIdx >= 0)
+					this.MenuBook.Items.Insert(mapIdx + 1, editMapItem);
+				else
+					this.MenuBook.Items.Add(editMapItem);
+
 				// Add Export and Restore to File menu
 				var exportSeparator = new ToolStripSeparator();
 				var exportItem = new ToolStripMenuItem("Export to Folder...");
@@ -2610,6 +2619,7 @@ namespace MacroEditor
 					this.MacroMap?.Hide();
 					this.MacroMap = new MacroMapForm();
 					this.MacroMap.SetNavigateCallback((b, r, m) => this.FindMacro(b, r, m));
+					this.MacroMap.SetEditCallback((b) => this.OpenEditableMacroMap(b));
 					int num = 0;
 					do
 					{
@@ -2625,6 +2635,44 @@ namespace MacroEditor
 					while (num <= 9);
 					this.MacroMap.Show();
 				}
+			}
+		}
+
+		private void MenuBook_EditMacroMap_Click(object sender, EventArgs e)
+		{
+			if (this.Contents.Enabled)
+			{
+				this.OpenEditableMacroMap(this.cbook);
+			}
+		}
+
+		public void OpenEditableMacroMap(int book)
+		{
+			this.EditMacroMap?.Hide();
+			this.EditMacroMap = new EditableMacroMapForm();
+			this.EditMacroMap.SetSaveCallback((b, r, m, data) =>
+			{
+				this.Books[b].Rows[r].Macros[m] = Macro.FromArray(data);
+				this.SomethingEdited = true;
+				if (b == this.xBook)
+					this.Rows[this.xRow].PerformClick();
+			});
+			checked
+			{
+				int num = 0;
+				do
+				{
+					int num2 = 0;
+					do
+					{
+						this.EditMacroMap.Add(book, num, num2, this.Books[book].Rows[num].Macros[num2].ToArray());
+						num2++;
+					}
+					while (num2 <= 19);
+					num++;
+				}
+				while (num <= 9);
+				this.EditMacroMap.Show();
 			}
 		}
 
@@ -4641,6 +4689,8 @@ namespace MacroEditor
 
 		// Token: 0x04000044 RID: 68
 		public MacroMapForm MacroMap;
+
+		public EditableMacroMapForm EditMacroMap;
 
 		/// <summary>
 		/// Converts index 10 to "0" for FFXI display (10th macro shows as 0).

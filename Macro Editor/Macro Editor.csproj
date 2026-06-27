@@ -96,6 +96,7 @@
     <Compile Include="MacroFileManager.cs" />
     <Compile Include="MacroValidator.cs" />
     <Compile Include="VariableSubstitutionEngine.cs" />
+    <Compile Include="EditableMacroMapForm.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assessment.resources" />

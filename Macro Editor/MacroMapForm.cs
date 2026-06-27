@@ -10,6 +10,8 @@ namespace MacroEditor
 	public partial class MacroMapForm : Form
 	{
 		private Action<int, int, int> navigateCallback;
+		private Action<int> editCallback;
+		private int bookIndex = -1;
 
 		// Faded color scheme for Ctrl (blue) and Alt (red) macros
 		private static readonly Color CtrlColor = Color.FromArgb(210, 225, 255);
@@ -32,6 +34,11 @@ namespace MacroEditor
 		public void SetNavigateCallback(Action<int, int, int> callback)
 		{
 			this.navigateCallback = callback;
+		}
+
+		public void SetEditCallback(Action<int> callback)
+		{
+			this.editCallback = callback;
 		}
 
 		// Token: 0x0600012F RID: 303 RVA: 0x0000BA79 File Offset: 0x00009C79
@@ -80,10 +87,17 @@ namespace MacroEditor
 			nextPageButton.Location = new Point(310, 20);
 			nextPageButton.Click += this.NextPage_Click;
 
+			var editButton = new Button();
+			editButton.Text = "Edit";
+			editButton.Size = new Size(100, 30);
+			editButton.Location = new Point(430, 20);
+			editButton.Click += this.Edit_Click;
+
 			this.headerPanel.Controls.Add(ctrlHeaderLabel);
 			this.headerPanel.Controls.Add(altHeaderLabel);
 			this.headerPanel.Controls.Add(prevPageButton);
 			this.headerPanel.Controls.Add(nextPageButton);
+			this.headerPanel.Controls.Add(editButton);
 
 			// Divider at the bottom of the header to separate it from the scrolling content
 			var headerDivider = new Panel();
@@ -139,6 +153,7 @@ namespace MacroEditor
 				label.Text = string.Join("\r\n", a);
 				label.MouseDown += new MouseEventHandler(this.mbox_Click);
 				this.bodyPanel.Controls.Add(label);
+				this.bookIndex = b;
 				if (r > this.maxPage)
 					this.maxPage = r;
 				return true;
@@ -177,6 +192,15 @@ namespace MacroEditor
 		private void NextPage_Click(object sender, EventArgs e)
 		{
 			this.GoToPage(this.currentPage + 1);
+		}
+
+		private void Edit_Click(object sender, EventArgs e)
+		{
+			if (this.editCallback != null && this.bookIndex >= 0)
+			{
+				this.editCallback(this.bookIndex);
+				this.Hide();
+			}
 		}
 
 		// Token: 0x06000136 RID: 310 RVA: 0x0000BD4E File Offset: 0x00009F4E

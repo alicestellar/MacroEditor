@@ -377,3 +377,15 @@ Both features will be implemented.
 **User Input**: "Perfect. Go ahead and commit and push. This unit is done. I have to go get ready for dinner."
 **AI Response**: Unit 10 (Macro Map Visual Enhancements) complete and tested. Color-coded Ctrl (blue)/Alt (red) labels, pinned CTRL/ALT header with divider, Prev/Next page buttons, window sized to one page. Snap-scrolling dropped per user; dividers between pages dropped. Committing and pushing.
 **Context**: CONSTRUCTION - Unit 10 done. Remaining: Unit 11 (Editable Macro Map), Unit 12 (Text Import/Export), Unit 14 (Warning Cleanup). Unit 9 (Undo/Redo) deferred.
+
+## Unit 11 - Editable Macro Map Start
+**Timestamp**: 2026-06-26T21:00:00Z
+**User Input**: "Let's see if we can do Unit 11 while I'm winding down" + "One textbox per macro, but discard any characters after 8 in the title row"
+**AI Response**: Beginning Unit 11 (Editable Macro Map). Design: new EditableMacroMapForm mirroring MacroMapForm layout but with editable multiline textboxes per macro (line 1 = title truncated to 8 chars on save, lines 2-7 = commands). Read-only map gets an Edit button; MainForm gets "Edit in Macro Map" context menu item. Editable form has Save button writing back to data model.
+**Context**: CONSTRUCTION - Unit 11. One-textbox-per-macro confirmed, title truncated to 8 chars.
+
+## Unit 11 - Complete
+**Timestamp**: 2026-06-26T21:30:00Z
+**User Input**: "It looks good to me. It saves correctly. Let's commit and push, then remind me what's left"
+**AI Response**: Unit 11 (Editable Macro Map) complete and tested — saves correctly. EditableMacroMapForm with per-macro textboxes, Edit button on read-only map, "Edit in Macro Map" context menu item, Save writes back via Macro.FromArray (title truncated to 8). Committing and pushing.
+**Context**: CONSTRUCTION - Unit 11 done. Remaining: Unit 12 (Text Import/Export), Unit 14 (Warning Cleanup), Unit 9 (Undo/Redo, deferred).
