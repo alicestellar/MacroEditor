@@ -53,7 +53,7 @@
 - [x] Unit 6: Export with Variable Substitution (redesigned — reads destination Book 40) - Committed 5288d43
 - [ ] Unit 9: Undo/Redo
 - [x] Unit 10: Macro Map Visual Enhancements - Committed 14d3817
-- [x] Unit 11: Editable Macro Map - Committed (pending hash)
+- [x] Unit 11: Editable Macro Map - Committed a88608b
 - [ ] Unit 12: Text File Import/Export
 - [x] Unit 13: Broadcast Edit (Copy to All Books) - Committed 0330f59
 - [ ] Unit 14: Compiler Warning Cleanup (low priority — after all features)
