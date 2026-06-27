@@ -359,3 +359,111 @@ Both features will be implemented.
 **Context**: CONSTRUCTION - Unit 6, Code Generation.
 
 ---
+
+## Bug Fix - ReadMacroRow Line Offset (Q¥ garble)
+**Timestamp**: 2026-06-26T12:00:00Z
+**User Input**: "Okay, let's go ahead and implement the fix you suggested."
+**AI Response**: Diagnosed via hex inspection of mcr399.dat / mcr.dat.backup in folder 167bf9b. Root cause: ReadMacroRow reads each macro's 6 line fields starting at offset 0,61,122,183,244,305 but WriteRow (and FFXI itself) place line content at offset 4,65,126,187,248,309 (after a 4-byte header). The 4-byte misalignment caused stray header bytes (e.g. 60 51 A4 = "Q¥") to be pulled into line 1 and baked into text on save. Confirmed FFXI 'Follow' macro stores "/target <me>" at offset 4. Fix: change line read start offset from 0 to 4 in ReadMacroRow. Header is null for all real macros (verified), so no metadata is lost by the existing zero-on-write behavior.
+**Context**: CONSTRUCTION - Bug fix in MacroFileManager.ReadMacroRow. Logged as Unit 15.
+
+## Unit 10 - Macro Map Visual Enhancements Start
+**Timestamp**: 2026-06-26T12:30:00Z
+**User Input**: "Let's start on unit 10. We'll table unit 9 for now. I want to make sure all the other features are done before we worry about undo, redo, and what COUNTS as something we should add to the stack."
+**AI Response**: Beginning Unit 10 (Macro Map Visual Enhancements). Unit 9 (Undo/Redo) deferred until other features complete. Reading current MacroMapForm to plan functional design.
+**Context**: CONSTRUCTION - Unit 10. Unit 9 deferred.
+
+## Unit 10 - Complete
+**Timestamp**: 2026-06-26T13:30:00Z
+**User Input**: "Perfect. Go ahead and commit and push. This unit is done. I have to go get ready for dinner."
+**AI Response**: Unit 10 (Macro Map Visual Enhancements) complete and tested. Color-coded Ctrl (blue)/Alt (red) labels, pinned CTRL/ALT header with divider, Prev/Next page buttons, window sized to one page. Snap-scrolling dropped per user; dividers between pages dropped. Committing and pushing.
+**Context**: CONSTRUCTION - Unit 10 done. Remaining: Unit 11 (Editable Macro Map), Unit 12 (Text Import/Export), Unit 14 (Warning Cleanup). Unit 9 (Undo/Redo) deferred.
+
+## Unit 11 - Editable Macro Map Start
+**Timestamp**: 2026-06-26T21:00:00Z
+**User Input**: "Let's see if we can do Unit 11 while I'm winding down" + "One textbox per macro, but discard any characters after 8 in the title row"
+**AI Response**: Beginning Unit 11 (Editable Macro Map). Design: new EditableMacroMapForm mirroring MacroMapForm layout but with editable multiline textboxes per macro (line 1 = title truncated to 8 chars on save, lines 2-7 = commands). Read-only map gets an Edit button; MainForm gets "Edit in Macro Map" context menu item. Editable form has Save button writing back to data model.
+**Context**: CONSTRUCTION - Unit 11. One-textbox-per-macro confirmed, title truncated to 8 chars.
+
+## Unit 11 - Complete
+**Timestamp**: 2026-06-26T21:30:00Z
+**User Input**: "It looks good to me. It saves correctly. Let's commit and push, then remind me what's left"
+**AI Response**: Unit 11 (Editable Macro Map) complete and tested — saves correctly. EditableMacroMapForm with per-macro textboxes, Edit button on read-only map, "Edit in Macro Map" context menu item, Save writes back via Macro.FromArray (title truncated to 8). Committing and pushing.
+**Context**: CONSTRUCTION - Unit 11 done. Remaining: Unit 12 (Text Import/Export), Unit 14 (Warning Cleanup), Unit 9 (Undo/Redo, deferred).
+
+## Unit 12 - Text Import/Export Design Approved
+**Timestamp**: 2026-06-26T22:00:00Z
+**User Input**: Design discussion — confirmed: Human format = labeled plain text with guardrails; AI format = prompt + JSON between markers; export by book/page/row + all-books as one-file-per-book folder; placeholders left as-is; File-menu import puts back where it came from, context-menu import overwrites clicked target; JavaScriptSerializer for JSON. Plus deferred Phase 2: partial import with sequential correction editor for broken sections.
+**AI Response**: Functional design written. Beginning base implementation: MacroTextSerializer (export+parse both formats), then book/page/row wiring, then all-books folder. Phase 2 (correction editor) deferred.
+**Context**: CONSTRUCTION - Unit 12 base implementation start.
+
+## New Task - Weapon Skill Macro Entry (Book 23 & 24)
+**Timestamp**: 2026-06-27T00:00:00Z
+**User Input**: "Using AIDLC, I'd like to work on MacroEditor in the workspace. I couldn't recover the context, but here is what we are doing: We are editting the macro books for book23 and book24 in the Data folder. We are retrieving all of the non-automaton weapon skills from this page in bg wiki:https://www.bg-wiki.com/ffxi/Category:Weapon_Skills We are then using a single page per weapon and entering weapon skills for each of them. The very first page of book23 should be left as it is. I have plans for that page. For book 24 we can begin filling from page 1. The weapon skill macro titles should be as follows: Sword = S, Great Sword = GS, etc. Scythe = Sc, Staff = St, Archery = Ar, Hand to Hand = H2H, and Marksmanship = M. The skill level weapon skills should be labeled S1, S2, or M1, M2, etc. The Aeonix weapon skills should be labeled like SMerit or GSMerit, etc. The Relic, Prime, and Empyrean should be SRelic, SPrime, and SEmp, respectively, changing the prefix for the weapon type. The Mythic weapon skills should be labeled SJob. So if the Mythic weapon is for Paladin, it should be SPLD. If it'd for Redmage it should be SRDM. Etc."
+**AI Response**: Resumed AIDLC for brownfield MacroEditor project. Recognized this as a NEW data-entry task (distinct from prior code-refactor units). Loaded common rules, read book-23/book-24 data files and the BG wiki Weapon Skills category page (retrieved full WS tables for all 14 non-automaton weapon types). Entering Requirements Analysis with clarification questions for ambiguities: remaining weapon-type prefixes, book/page layout & ordering, macro line command format, handling of quest WS and multi-job mythic WS.
+**Context**: INCEPTION - Requirements Analysis. New task within existing project. Created weapon-skill-macros-questions.md.
+
+---
+
+## Code Generation - Book 23 Page 1 (Archery)
+**Timestamp**: 2026-06-27T00:30:00Z
+**User Input**: "Alright. So for page one of book 23, here is what I want you to do: Make the first EIGHT macros of CTRL completely blank. Wipe out whatever is in them. Place the Quest and Merit archery weapon skills in slots CTRL 9 and CTRL 10. Place the remaining archery skills in the Alt slots, in the order you are showing them above, other than the quest and merit skills"
+**AI Response**: Confirmed answers (Q1=A prefixes, Q2=B distinct Quest label, Q3=A ascending, Q4=A per-job mythic, Q5=X BoxCommands "//box ws <name>", Q6=A wiki order across book23 p2-10 then book24, Q7=A overwrite). Edited Book 23 page 1: Ctrl1-8 blanked; Ctrl9=ArQuest (Empyreal Arrow); Ctrl10=ArMerit (Apex Arrow); Alt1-7=Ar1-Ar7 (Flaming/Piercing/Dulling/Sidewinder/Blast/Arching/Refulgent Arrow); Alt8=ArRelic (Namas Arrow); Alt9=ArEmp (Jishnu's Radiance); Alt10=ArPrime (Sarv). Macro body uses "//box ws <skill name>" lowercase. Validated JSON parses cleanly with 20 slots on page 1.
+**Context**: CONSTRUCTION - Weapon skill macro entry. Book 23 page 1 complete.
+
+---
+
+## Code Generation - Remaining Weapons (Book 23 & 24)
+**Timestamp**: 2026-06-27T01:00:00Z
+**User Input**: "You can fill the remaining pages as planned. You don't need to add duplicate archery commands. Archery is in book 1, so we can skip it going forward. Please always put the mythic weapon skills at the end. Other than Archery, which is in a unique situation, it should run all numbered weapon skills, followed by quest, then merit, then relic, then empyrean, then prime, then mythic."
+**AI Response**: Established per-page ordering rule: numbered -> Quest -> Merit -> Relic -> Empyrean -> Prime -> Mythic (by job, at end). Skipped Archery going forward. Filled 13 weapons in wiki order. Book 23: p2 Hand-to-Hand, p3 Dagger, p4 Sword, p5 Great Sword, p6 Axe, p7 Great Axe, p8 Scythe, p9 Polearm, p10 Katana. Book 24: p1 Great Katana, p2 Club, p3 Staff, p4 Marksmanship, p5-10 blank. All commands use "//box ws <skill name>" lowercase. Multi-job mythics labeled per job (e.g. SRDM/SPLD/SBLU, CWHM/CGEO, StBLM/StSMN/StSCH, MRNG/MCOR); Ergon treated as Mythic (GSRUN Dimidiation, CGEO Exudation). Validated both files: VALID JSON, 10 pages each, 20 slots/page, no title >8 chars.
+**Context**: CONSTRUCTION - Weapon skill macro entry complete for all 14 non-automaton weapons.
+
+---
+
+## Unit 12 Done + Unit 9 (Undo) Scoping
+**Timestamp**: 2026-06-27T02:00:00Z
+**User Input**: "We just tested unit 12. The files you helped me edit imported cleanly and saved correctly. You can mark that done. I... am honestly not sure if I want the undo and redo for most things, but I do want an undo for copying, pasting, and clearing macros. Editing within a macro can be controlled by ctrl+z (I already tested this and want to leave it as it is) but I'd like an undo stack for pastes and clears to books, pages, rows, and macros."
+**AI Response**: Marked Unit 12 complete in aidlc-state.md and fixed stale Current Stage header. Scoped Unit 9 down to undo for paste/clear/cut at book/page/row/macro scopes (native Ctrl+Z in-line editing untouched). Investigated code: all paste/clear/cut handlers mutate this.Books; model has Clone() at all levels enabling snapshot-based undo. Mapped scopes to handlers (Book=MenuBook_*, Page=MenuRow_*, Row=MenuHandler_*Side, Macro=MenuMacro_*). Created undo-scope-questions.md with 5 questions (trigger/hotkey vs Ctrl+Z conflict, redo y/n, whether broadcast/import are undoable, history clear policy & depth, scope mapping confirmation).
+**Context**: CONSTRUCTION - Unit 9 Functional Design (requirements refinement). Awaiting answers.
+
+---
+
+## Unit 9 (Undo/Redo) - Implemented
+**Timestamp**: 2026-06-27T03:00:00Z
+**User Input**: Answers to undo-scope-questions.md — Q1=A (Edit menu, no global hotkey), Q2=B (Undo+Redo), Q3=B (also Broadcast undoable; not Import), Q4=A (clear on Open + full Save, cap 50), Q5=A (scope mapping confirmed).
+**AI Response**: Implemented snapshot/memento undo+redo. New files: UndoManager.cs (UndoManager + UndoEntry + BookSnapshot, list-backed stacks, depth cap 50) and MainForm.Undo.cs (partial: Edit menu build/insert, RecordUndo with re-entrancy guard via BeginInvoke, DoUndo/DoRedo, ApplyUndoEntry, ClearUndoHistory). Registered both in csproj. Wired InitUndoUi() in constructor. Instrumented RecordUndo at: MenuMacro_Paste/Clear/PasteClipboard, MenuRow_Paste/Clear/Cut/PasteClipboard, MenuBook_Paste/Clear/PasteClipboard, MenuHandler_ClearSide/PasteSide; RecordUndoAllBooks after confirm in BroadcastPage/Macro/CtrlAltRow/Line. ClearUndoHistory on File_Open load and successful File_SaveAll. Cut wrappers covered via their delegated Clear (MenuRow_Cut instrumented directly since it clears inline). Native Ctrl+Z in line textboxes untouched. Build: dotnet build succeeded, 0 errors (13 pre-existing warnings unrelated = Unit 14 backlog).
+**Context**: CONSTRUCTION - Unit 9 complete. Remaining: Unit 14 (warning cleanup, low priority) + final Build and Test.
+
+---
+
+## Unit 15 (Import Repair Workflow) - Scoping
+**Timestamp**: 2026-06-27T04:00:00Z
+**User Input**: "Alright, undo and redo seem to be working. I forgot, we never implemented the partial load of buggy text files with a workflow to fix each problem, one by one, in a text editor. Let's do that now"
+**AI Response**: Confirmed Unit 9 working. Opened Unit 15 (new). Read MacroTextSerializer.cs and MainForm import flow (Parse, ApplyPutBackCore, ApplyImportToBook/Page/Row, FinishImport, PromptAndParseImport, File_ImportText/ImportAllText, ImportOver*). Documented current behavior: hard failures abort entirely; soft problems (invalid slot, out-of-range book/page, line count, title length) skipped/auto-fixed with end summary. Created import-repair-questions.md with 8 questions (editor type, two-stage syntax-then-macro model, which problems pause, per-problem actions, partial-load timing, which entry points, save-back to source, formats).
+**Context**: CONSTRUCTION - Unit 15 Functional Design. Awaiting answers.
+
+---
+
+## Unit 15 (Import Repair Workflow) - Implemented
+**Timestamp**: 2026-06-27T05:00:00Z
+**User Input**: Answers to import-repair-questions.md (Q1=A in-app snippet/whole-file editor; Q2=A two-stage; Q3=B pause on slot/book/page/title>8/line-count; Q4=B Fix/Skip/Skip All/Cancel; Q5=B single-file applies only after all resolved; Q6=X bulk reports problem files for individual repair; Q7=A offer save-back; Q8=A both formats) plus clarification: single-file loads nothing until whole file resolved; bulk applies clean files sequentially and lists problem files (not loaded).
+**AI Response**: Implemented. MacroTextSerializer.cs: added MacroExport.RawLineCount, ImportProblem/ImportProblemKind, Validate(model,bookCount,checkBookRange,checkPageRange), MacroToSnippet/ParseMacroSnippet. New ImportRepairForm.cs (modal editor: problem label + monospace TextBox + Fix/Skip/Skip All/Cancel via TableLayoutPanel layout; Re-check-only in stage 1). New MainForm.ImportRepair.cs (partial): PromptParseAndRepair runs Stage 1 syntax-fix loop then Stage 2 per-item fix/skip loop (drops skipped targets, fixes in place), OfferSaveBack re-serializes corrected model (warns when skipped items omitted). Rewired File_ImportText (book+page range checks), ImportOverBook (page only), ImportOverPage/Row (neither) to repair pipeline + save-back. Rewrote File_ImportAllText: clean files applied sequentially, problem files (hard error OR any validation problem) skipped and reported with guidance to import individually. Registered ImportRepairForm.cs + MainForm.ImportRepair.cs in csproj. Build: dotnet build succeeded, 0 errors (13 pre-existing warnings = Unit 14 backlog). Needs manual UI test.
+**Context**: CONSTRUCTION - Unit 15 complete. Remaining: Unit 14 (warning cleanup) + final Build and Test.
+
+---
+
+## Macro Edits - //box to /console box + Import Test File
+**Timestamp**: 2026-06-27T06:00:00Z
+**User Input**: "replace all of the //box entries with //console box ... The 'ws skill name' part needs to remain the same ... create 'test case breakages' in macro book 25 ... [correction] It is /console box with one slash."
+**AI Response**: Replaced "//box ws" -> "/console box ws" in books 23 and 24 (one slash + console; //box=chat, /console box=macros). INCIDENT: a garbled PowerShell run overwrote book-23 with book-24's content (data loss; weapon books were uncommitted). Detected via per-book verification (book 23 showed book=24 content). RESTORED book-23 by rebuilding from known data with /console box: page1 Archery + pages2-10 H2H/Dagger/Sword/GreatSword/Axe/GreatAxe/Scythe/Polearm/Katana. Verified: book 23 = book#23, filled [12,16,18,19,15,15,15,15,15,15]=155, 0 //box, 155 /console box; book 24 = book#24, [15,17,17,14]=63, 0 //box, 63 /console box. Created book-25 test file with intentional breakages for Unit 15 import-repair testing: Stage 1 = missing comma (invalid JSON); Stage 2 = book 99 (BookOutOfRange), page 12 (PageOutOfRange), Ctrl1 title 15 chars (TitleTooLong), Ctrl3 3 lines (LineCount), slot "Crtl4" (InvalidSlot). Verified broken-parse + fixed-parse states.
+**Context**: Testing support for Unit 15. Note: future shell file edits should avoid the terminal-echo issue; prefer dedicated file tools.
+
+---
+
+## Unit 14 (Compiler Warning Cleanup) - Done
+**Timestamp**: 2026-06-27T07:00:00Z
+**User Input**: "Alright, let's fix the warnings"
+**AI Response**: Captured 13 warnings from clean rebuild and fixed all: CS0168 unused catch variables -> parameterless catch (Resizer.cs x2, MacroFileManager.cs x2, MainForm.cs x3); CS0219 removed unused local skipCount (MainForm.cs ExportAllText); CS0414 removed unused field PageHeight (MacroMapForm.cs); CS0649 initialized designer 'components' fields to null (Assessment/Destination/Help/MacroMapForm .Designer.cs). First rebuild attempt failed only on file-copy (MSB3021/3027) because the app was running and locked bin\Debug\Macro Editor.exe; compile emitted 0 CS warnings. Final clean rebuild: Build succeeded, 0 Warning(s), 0 Error(s). Cleaned up temp build-log files.
+**Context**: CONSTRUCTION - Unit 14 complete. All feature units done; only final Build and Test stage remains.
+
+---

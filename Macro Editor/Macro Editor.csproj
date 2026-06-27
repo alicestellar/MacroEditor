@@ -36,6 +36,7 @@
     <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="Yekyaa.FFXIEncoding">
@@ -96,6 +97,18 @@
     <Compile Include="MacroFileManager.cs" />
     <Compile Include="MacroValidator.cs" />
     <Compile Include="VariableSubstitutionEngine.cs" />
+    <Compile Include="EditableMacroMapForm.cs" />
+    <Compile Include="MacroTextSerializer.cs" />
+    <Compile Include="UndoManager.cs" />
+    <Compile Include="MainForm.Undo.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ImportRepairForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.ImportRepair.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assessment.resources" />

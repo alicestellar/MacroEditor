@@ -91,12 +91,12 @@ namespace MacroEditor
 								control.Font = new Font(font.FontFamily, controlInfo.originalFontSize * num3, font.Style);
 							}
 						}
-						catch (Exception ex)
+						catch (Exception)
 						{
 						}
 					}
 				}
-				catch (Exception ex2)
+				catch (Exception)
 				{
 				}
 				bool flag4 = control.Controls.Count > 0;

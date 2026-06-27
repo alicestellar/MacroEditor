@@ -63,6 +63,6 @@
 		}
 
 		// Token: 0x04000016 RID: 22
-		private global::System.ComponentModel.IContainer components;
+		private global::System.ComponentModel.IContainer components = null;
 	}
 }

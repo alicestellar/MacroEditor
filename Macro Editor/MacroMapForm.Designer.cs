@@ -35,6 +35,6 @@
 		}
 
 		// Token: 0x0400008F RID: 143
-		private global::System.ComponentModel.IContainer components;
+		private global::System.ComponentModel.IContainer components = null;
 	}
 }

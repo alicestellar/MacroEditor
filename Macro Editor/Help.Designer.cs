@@ -50,6 +50,6 @@
 		}
 
 		// Token: 0x04000091 RID: 145
-		private global::System.ComponentModel.IContainer components;
+		private global::System.ComponentModel.IContainer components = null;
 	}
 }
