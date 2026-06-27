@@ -4,7 +4,7 @@
 
 - **Project Type**: Brownfield
 - **Start Date**: 2026-06-02T00:00:00Z
-- **Current Stage**: CONSTRUCTION - Unit 5 (Template Variables) pending
+- **Current Stage**: CONSTRUCTION - all feature units complete (incl. Unit 14 warning cleanup); only final Build and Test stage remains
 
 ## Workspace State
 
@@ -51,10 +51,11 @@
 - [ ] ~~Unit 4: config.json Support~~ — ELIMINATED (variables stored in Book 40 instead)
 - [x] Unit 5: Template Variables (redesigned — source: Book 40 variable macros) - Committed (0c79267, c372887)
 - [x] Unit 6: Export with Variable Substitution (redesigned — reads destination Book 40) - Committed 5288d43
-- [ ] Unit 9: Undo/Redo
+- [x] Unit 9: Undo/Redo — DONE (scoped to paste/clear/cut at book/page/row/macro + broadcast; Edit menu Undo/Redo; snapshot/memento via UndoManager; clears on Open & full Save; cap 50; native Ctrl+Z untouched). Builds clean (0 errors).
 - [x] Unit 10: Macro Map Visual Enhancements - Committed 14d3817
 - [x] Unit 11: Editable Macro Map - Committed a88608b
-- [ ] Unit 12: Text File Import/Export
+- [x] Unit 12: Text File Import/Export - Complete (verified: AI-edited files import cleanly and save correctly)
 - [x] Unit 13: Broadcast Edit (Copy to All Books) - Committed 0330f59
-- [ ] Unit 14: Compiler Warning Cleanup (low priority — after all features)
+- [x] Unit 14: Compiler Warning Cleanup - DONE (fixed all 13: 6×CS0168 unused catch vars, 1×CS0219 unused skipCount, 1×CS0414 unused PageHeight, 4×CS0649 designer components init). Clean build: 0 warnings, 0 errors.
+- [x] Unit 15: Partial Load + Fix-Each-Problem Import Workflow — DONE (two-stage repair: Stage 1 file-syntax editor loop, Stage 2 per-macro fix/skip/skip-all; single-file imports load nothing until all problems resolved; bulk folder import applies clean files and reports problem files for individual repair; pauses on invalid slot / out-of-range book&page / title>8 / line-count; offers save-back of corrected file). Builds clean (0 errors). NEEDS MANUAL UI TEST.
 - [x] Bugfix: ReadMacroRow line offset (Q¥ garble) — read line content at byte 4 not 0

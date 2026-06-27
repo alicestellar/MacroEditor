@@ -73,6 +73,7 @@ namespace MacroEditor
 			this.MacroMap = null;
 			Log("Constructor: before InitializeComponent");
 			this.InitializeComponent();
+			this.InitUndoUi();
 			Log("Constructor: done");
 		}
 
@@ -612,6 +613,45 @@ namespace MacroEditor
 				else
 					this.MenuBook.Items.Add(editMapItem);
 
+				// ===== Text Import/Export menu items (Unit 12) =====
+
+				// Book context menu: Export Book to Text (Human/AI) + Import Over This Book
+				this.MenuBook.Items.Add(new ToolStripSeparator());
+				var exportBookMenu = new ToolStripMenuItem("Export Book to Text");
+				exportBookMenu.DropDownItems.Add("Human Format", null, (s, ev) => this.ExportBookText(MacroTextFormat.Human));
+				exportBookMenu.DropDownItems.Add("AI Format", null, (s, ev) => this.ExportBookText(MacroTextFormat.Ai));
+				this.MenuBook.Items.Add(exportBookMenu);
+				this.MenuBook.Items.Add(new ToolStripMenuItem("Import Text Over This Book...", null, this.ImportOverBook_Click));
+
+				// Page (row button) context menu: Export Page to Text + Import Over This Page
+				this.MenuRow.Items.Add(new ToolStripSeparator());
+				var exportPageMenu = new ToolStripMenuItem("Export Page to Text");
+				exportPageMenu.DropDownItems.Add("Human Format", null, (s, ev) => this.ExportPageText(MacroTextFormat.Human));
+				exportPageMenu.DropDownItems.Add("AI Format", null, (s, ev) => this.ExportPageText(MacroTextFormat.Ai));
+				this.MenuRow.Items.Add(exportPageMenu);
+				this.MenuRow.Items.Add(new ToolStripMenuItem("Import Text Over This Page...", null, this.ImportOverPage_Click));
+
+				// Handler (Ctrl/Alt half-row) context menu: Export Row to Text + Import Over This Row
+				this.MenuHandler.Items.Add(new ToolStripSeparator());
+				var exportRowMenu = new ToolStripMenuItem("Export Ctrl/Alt Row to Text");
+				exportRowMenu.DropDownItems.Add("Human Format", null, (s, ev) => this.ExportRowText(MacroTextFormat.Human));
+				exportRowMenu.DropDownItems.Add("AI Format", null, (s, ev) => this.ExportRowText(MacroTextFormat.Ai));
+				this.MenuHandler.Items.Add(exportRowMenu);
+				this.MenuHandler.Items.Add(new ToolStripMenuItem("Import Text Over This Row...", null, this.ImportOverRow_Click));
+
+				// File menu: Export All Books to Text + Import from Text (put back)
+				var exportAllTextMenu = new ToolStripMenuItem("Export All Books to Text");
+				exportAllTextMenu.DropDownItems.Add("Human Format (folder)", null, (s, ev) => this.ExportAllBooksText(MacroTextFormat.Human));
+				exportAllTextMenu.DropDownItems.Add("AI Format (folder)", null, (s, ev) => this.ExportAllBooksText(MacroTextFormat.Ai));
+				var importTextItem = new ToolStripMenuItem("Import from Text...", null, this.File_ImportText_Click);
+				var importAllTextItem = new ToolStripMenuItem("Import All Books from Folder...", null, this.File_ImportAllText_Click);
+				int exitIdx2 = this.FileMenu.DropDownItems.IndexOf(this.File_Exit);
+				if (exitIdx2 < 0) exitIdx2 = this.FileMenu.DropDownItems.Count;
+				this.FileMenu.DropDownItems.Insert(exitIdx2, exportAllTextMenu);
+				this.FileMenu.DropDownItems.Insert(exitIdx2 + 1, importTextItem);
+				this.FileMenu.DropDownItems.Insert(exitIdx2 + 2, importAllTextItem);
+				this.FileMenu.DropDownItems.Insert(exitIdx2 + 3, new ToolStripSeparator());
+
 				// Add Export and Restore to File menu
 				var exportSeparator = new ToolStripSeparator();
 				var exportItem = new ToolStripMenuItem("Export to Folder...");
@@ -921,6 +961,7 @@ namespace MacroEditor
 		// Token: 0x0600005E RID: 94 RVA: 0x00005A98 File Offset: 0x00003C98
 		private void MenuMacro_Paste_Click(object sender, EventArgs e)
 		{
+			this.RecordUndo("Paste Macro", this.xBook);
 			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			this.Books[this.xBook].Rows[this.xRow].Macros[Convert.ToInt32(objectValue)] = this.Macroholder.Clone();
 			string text = this.Macroholder[0] + " ";
@@ -940,6 +981,7 @@ namespace MacroEditor
 		// Token: 0x0600005F RID: 95 RVA: 0x00005BF8 File Offset: 0x00003DF8
 		private void MenuBook_Paste_Click(object sender, EventArgs e)
 		{
+			this.RecordUndo("Paste Book", this.cbook);
 			int num = 0;
 			checked
 			{
@@ -952,7 +994,7 @@ namespace MacroEditor
 						{
 							this.Books[this.cbook].Rows[num].Macros[num2] = this.BookHolder[num, num2].Clone();
 						}
-						catch (Exception ex)
+						catch (Exception)
 						{
 							int num3 = 0;
 							do
@@ -961,7 +1003,7 @@ namespace MacroEditor
 								{
 									this.Books[this.cbook].Rows[num].Macros[num2][num3] = this.BookHolder[num, num2][num3];
 								}
-								catch (Exception ex2)
+								catch (Exception)
 								{
 									this.Books[this.cbook].Rows[num].Macros[num2][num3] = "";
 								}
@@ -1041,6 +1083,7 @@ namespace MacroEditor
 		// Token: 0x06000063 RID: 99 RVA: 0x00005E64 File Offset: 0x00004064
 		private void MenuBook_Clear_Click(object sender, EventArgs e)
 		{
+			this.RecordUndo("Clear Book", this.cbook);
 			int num = 0;
 			checked
 			{
@@ -1130,6 +1173,7 @@ namespace MacroEditor
 			{
 				if (!flag2)
 				{
+					this.RecordUndo("Paste Book", this.xBook, this.cbook);
 					this.Contents.SelectedIndexChanged -= this.Contents_SelectedIndexChanged;
 					bool flag3 = string.Equals(array[0].Substring(0, 10), "Type: Book", StringComparison.Ordinal);
 					if (flag3)
@@ -1196,6 +1240,7 @@ namespace MacroEditor
 		// Token: 0x06000069 RID: 105 RVA: 0x000063DC File Offset: 0x000045DC
 		private void MenuMacro_Clear_Click(object sender, EventArgs e)
 		{
+			this.RecordUndo("Clear Macro", this.xBook);
 			int macroIndex = Convert.ToInt32(((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag);
 			this.Books[this.xBook].Rows[this.xRow].Macros[macroIndex] = new Macro();
 			this.SomethingEdited = true;
@@ -1218,6 +1263,7 @@ namespace MacroEditor
 		// Token: 0x0600006B RID: 107 RVA: 0x00006544 File Offset: 0x00004744
 		private void MenuMacro_PasteClipboard_Click(object sender, EventArgs e, int x = -1)
 		{
+			this.RecordUndo("Paste Macro", this.xBook);
 			bool flag = x == -1;
 			if (flag)
 			{
@@ -1295,6 +1341,7 @@ namespace MacroEditor
 		// Token: 0x0600006C RID: 108 RVA: 0x0000686C File Offset: 0x00004A6C
 		private void MenuRow_Paste_Click(object sender, EventArgs e)
 		{
+			this.RecordUndo("Paste Page", this.xBook);
 			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
@@ -1349,6 +1396,7 @@ namespace MacroEditor
 		// Token: 0x0600006F RID: 111 RVA: 0x00006A5C File Offset: 0x00004C5C
 		private void MenuRow_Cut_Click(object sender, EventArgs e)
 		{
+			this.RecordUndo("Cut Page", this.xBook);
 			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
@@ -1368,6 +1416,7 @@ namespace MacroEditor
 		// Token: 0x06000070 RID: 112 RVA: 0x00006B4C File Offset: 0x00004D4C
 		private void MenuRow_Clear_Click(object sender, EventArgs e)
 		{
+			this.RecordUndo("Clear Page", this.xBook);
 			object objectValue = ((ContextMenuStrip)((ToolStripMenuItem)sender).Owner).SourceControl.Tag;
 			int num = 0;
 			checked
@@ -1413,6 +1462,7 @@ namespace MacroEditor
 			{
 				if (!flag)
 				{
+					this.RecordUndo("Paste Page", this.xBook);
 					array = array.Skip(1).ToArray<string>();
 					Array.Resize<string>(ref array, array.Length - 1);
 					int num = 0;
@@ -1430,7 +1480,7 @@ namespace MacroEditor
 							{
 								this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num][i] = array2[i];
 							}
-							catch (Exception ex)
+							catch (Exception)
 							{
 								this.Books[this.xBook].Rows[Convert.ToInt32(objectValue)].Macros[num][i] = "";
 							}
@@ -1548,6 +1598,7 @@ namespace MacroEditor
 					bool flag2 = !this.VerifyClipboardFormat("Side", array);
 					if (!flag2)
 					{
+						this.RecordUndo("Paste Row", this.xBook);
 						array = array.Skip(1).ToArray<string>();
 						Array.Resize<string>(ref array, array.Length - 1);
 						bool flag3 = this.handlerStart == 10;
@@ -1599,6 +1650,7 @@ namespace MacroEditor
 		// Token: 0x06000077 RID: 119 RVA: 0x00007690 File Offset: 0x00005890
 		private void MenuHandler_ClearSide_Click(object sender, EventArgs e)
 		{
+			this.RecordUndo("Clear Row", this.xBook);
 			int num = this.handlerStart;
 			int num2 = this.handlerEnd;
 			checked
@@ -1690,6 +1742,7 @@ namespace MacroEditor
 					this.File_SaveRow.Enabled = true;
 					this.File_SaveAll.Enabled = true;
 					this.SomethingEdited = false;
+					this.ClearUndoHistory();
 				}
 			}
 		}
@@ -1746,6 +1799,7 @@ namespace MacroEditor
 						num2++;
 						if (num2 > this.debuglimit)
 						{
+							this.ClearUndoHistory();
 							goto IL_B3;
 						}
 					}
@@ -1791,6 +1845,7 @@ namespace MacroEditor
 			if (MessageBox.Show(msg, "Apply Page to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
 				return;
 
+			this.RecordUndoAllBooks("Broadcast Page");
 			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
 			{
 				if (bookIdx == this.xBook) continue;
@@ -1813,6 +1868,7 @@ namespace MacroEditor
 			if (MessageBox.Show(msg, "Apply Macro to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
 				return;
 
+			this.RecordUndoAllBooks("Broadcast Macro");
 			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
 			{
 				if (bookIdx == this.xBook) continue;
@@ -1837,6 +1893,7 @@ namespace MacroEditor
 			if (MessageBox.Show(msg, "Apply Ctrl/Alt Row to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
 				return;
 
+			this.RecordUndoAllBooks("Broadcast Row");
 			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
 			{
 				if (bookIdx == this.xBook) continue;
@@ -1863,6 +1920,7 @@ namespace MacroEditor
 			if (MessageBox.Show(msg, "Apply Line to All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
 				return;
 
+			this.RecordUndoAllBooks("Broadcast Line");
 			for (int bookIdx = 0; bookIdx <= Math.Min(this.debuglimit, 38); bookIdx++)
 			{
 				if (bookIdx == this.xBook) continue;
@@ -2136,7 +2194,6 @@ namespace MacroEditor
 
 			// Process each target directory
 			int successCount = 0;
-			int skipCount = 0;
 			foreach (string destPath in targetDirs)
 			{
 				// Read destination variables
@@ -2674,6 +2731,389 @@ namespace MacroEditor
 				while (num <= 9);
 				this.EditMacroMap.Show();
 			}
+		}
+
+		// ===== TEXT IMPORT/EXPORT (Unit 12) =====
+
+		private string CurrentCharacterId()
+		{
+			try { return new System.IO.DirectoryInfo(this.macropath).Name; }
+			catch { return ""; }
+		}
+
+		private BookExport BuildBookExport(int book, int pageStart, int pageEnd, int macroStart, int macroEnd)
+		{
+			var be = new BookExport();
+			be.Number = book + 1;
+			be.Name = (book < this.Contents.Items.Count) ? this.Contents.Items[book].ToString() : "";
+			for (int p = pageStart; p <= pageEnd; p++)
+			{
+				var pe = new PageExport();
+				pe.Number = p + 1;
+				for (int mi = macroStart; mi <= macroEnd; mi++)
+				{
+					var src = this.Books[book].Rows[p].Macros[mi];
+					pe.Macros.Add(new MacroExport
+					{
+						Slot = MacroTextSerializer.IndexToSlot(mi),
+						Title = src.Title,
+						Lines = new string[] { src.Lines[0], src.Lines[1], src.Lines[2], src.Lines[3], src.Lines[4], src.Lines[5] }
+					});
+				}
+				be.Pages.Add(pe);
+			}
+			return be;
+		}
+
+		private void WriteExportFile(MacroExportModel model, MacroTextFormat fmt, string suggestedName)
+		{
+			var sfd = new SaveFileDialog();
+			sfd.Filter = "Text Files|*.txt";
+			sfd.FileName = suggestedName;
+			sfd.InitialDirectory = this.macropath;
+			if (sfd.ShowDialog() != DialogResult.OK)
+				return;
+			string content = (fmt == MacroTextFormat.Human)
+				? MacroTextSerializer.ExportHuman(model)
+				: MacroTextSerializer.ExportAi(model);
+			System.IO.File.WriteAllText(sfd.FileName, content);
+			this.UpdateStatusBar("Export complete", sfd.FileName);
+		}
+
+		private void ExportBookText(MacroTextFormat fmt)
+		{
+			if (!this.Contents.Enabled) return;
+			var model = new MacroExportModel { Character = CurrentCharacterId(), Scope = MacroTextScope.Book };
+			model.Books.Add(BuildBookExport(this.cbook, 0, 9, 0, 19));
+			WriteExportFile(model, fmt, "book-" + (this.cbook + 1) + "-" + fmt.ToString().ToLower() + ".txt");
+		}
+
+		private void ExportPageText(MacroTextFormat fmt)
+		{
+			if (!this.Contents.Enabled) return;
+			var model = new MacroExportModel { Character = CurrentCharacterId(), Scope = MacroTextScope.Page };
+			model.Books.Add(BuildBookExport(this.xBook, this.xRow, this.xRow, 0, 19));
+			WriteExportFile(model, fmt, "book-" + (this.xBook + 1) + "-page-" + (this.xRow + 1) + "-" + fmt.ToString().ToLower() + ".txt");
+		}
+
+		private void ExportRowText(MacroTextFormat fmt)
+		{
+			if (!this.Contents.Enabled) return;
+			var model = new MacroExportModel { Character = CurrentCharacterId(), Scope = MacroTextScope.Row };
+			model.Books.Add(BuildBookExport(this.xBook, this.xRow, this.xRow, this.handlerStart, this.handlerEnd));
+			string side = (this.handlerStart == 0) ? "ctrl" : "alt";
+			WriteExportFile(model, fmt, "book-" + (this.xBook + 1) + "-page-" + (this.xRow + 1) + "-" + side + "-" + fmt.ToString().ToLower() + ".txt");
+		}
+
+		private void ExportAllBooksText(MacroTextFormat fmt)
+		{
+			if (!this.Contents.Enabled) return;
+			this.FolderBrowserDialog1.Description = "Choose a folder to write one file per book";
+			this.FolderBrowserDialog1.SelectedPath = this.macropath;
+			if (this.FolderBrowserDialog1.ShowDialog() != DialogResult.OK) return;
+			string folder = this.FolderBrowserDialog1.SelectedPath;
+			int written = 0;
+			for (int b = 0; b <= this.debuglimit; b++)
+			{
+				var model = new MacroExportModel { Character = CurrentCharacterId(), Scope = MacroTextScope.Book };
+				model.Books.Add(BuildBookExport(b, 0, 9, 0, 19));
+				string content = (fmt == MacroTextFormat.Human)
+					? MacroTextSerializer.ExportHuman(model)
+					: MacroTextSerializer.ExportAi(model);
+				string safeName = "book-" + (b + 1).ToString("D2") + "-" + MakeSafeFileName(model.Books[0].Name) + "." + fmt.ToString().ToLower() + ".txt";
+				System.IO.File.WriteAllText(System.IO.Path.Combine(folder, safeName), content);
+				written++;
+			}
+			MessageBox.Show(written + " book file(s) written to:\n" + folder, "Export All Books", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+
+		private string MakeSafeFileName(string name)
+		{
+			foreach (char c in System.IO.Path.GetInvalidFileNameChars())
+				name = name.Replace(c, '_');
+			return name.Trim();
+		}
+
+		private string TruncateTitle(string t)
+		{
+			if (t == null) return "";
+			return (t.Length > 8) ? t.Substring(0, 8) : t;
+		}
+
+		// Apply a parsed model, writing each macro back to the book/page/slot recorded in the file.
+		private void ApplyImportPutBack(MacroExportModel model)
+		{
+			var warnings = new List<string>();
+			int applied = ApplyPutBackCore(model, warnings);
+			FinishImport(applied, warnings, this._importParseWarnings);
+		}
+
+		// Core put-back: writes macros to their recorded book/page/slot. Accumulates warnings,
+		// returns count applied. No UI (so it can be reused for bulk folder import).
+		private int ApplyPutBackCore(MacroExportModel model, List<string> warnings)
+		{
+			int applied = 0;
+			foreach (var book in model.Books)
+			{
+				int bi = book.Number - 1;
+				if (bi < 0 || bi >= this.Books.Count) { warnings.Add("Skipped book " + book.Number + " (out of range)."); continue; }
+				foreach (var page in book.Pages)
+				{
+					int pi = page.Number - 1;
+					if (pi < 0 || pi > 9) { warnings.Add("Skipped book " + book.Number + " page " + page.Number + " (out of range)."); continue; }
+					foreach (var macro in page.Macros)
+					{
+						int idx = MacroTextSerializer.SlotToIndex(macro.Slot);
+						if (idx < 0) { warnings.Add("Skipped invalid slot '" + macro.Slot + "' in book " + book.Number + " page " + page.Number + "."); continue; }
+						this.Books[bi].Rows[pi].Macros[idx] = Macro.FromArray(BuildMacroArray(macro));
+						applied++;
+					}
+				}
+			}
+			return applied;
+		}
+
+		// Overwrite a specific target book with the file's first book content (ignores file's book number).
+		private void ApplyImportToBook(MacroExportModel model, int targetBook)
+		{
+			if (model.Books.Count == 0) { MessageBox.Show("The file contains no book data.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+			int applied = 0;
+			var warnings = new List<string>();
+			var book = model.Books[0];
+			foreach (var page in book.Pages)
+			{
+				int pi = page.Number - 1;
+				if (pi < 0 || pi > 9) { warnings.Add("Skipped page " + page.Number + " (out of range)."); continue; }
+				foreach (var macro in page.Macros)
+				{
+					int idx = MacroTextSerializer.SlotToIndex(macro.Slot);
+					if (idx < 0) { warnings.Add("Skipped invalid slot '" + macro.Slot + "'."); continue; }
+					this.Books[targetBook].Rows[pi].Macros[idx] = Macro.FromArray(BuildMacroArray(macro));
+					applied++;
+				}
+			}
+			FinishImport(applied, warnings, this._importParseWarnings);
+		}
+
+		// Overwrite a specific target page (book+row) with the file's first page content.
+		private void ApplyImportToPage(MacroExportModel model, int targetBook, int targetPage)
+		{
+			var page = FirstPage(model);
+			if (page == null) { MessageBox.Show("The file contains no page data.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+			int applied = 0;
+			var warnings = new List<string>();
+			foreach (var macro in page.Macros)
+			{
+				int idx = MacroTextSerializer.SlotToIndex(macro.Slot);
+				if (idx < 0) { warnings.Add("Skipped invalid slot '" + macro.Slot + "'."); continue; }
+				this.Books[targetBook].Rows[targetPage].Macros[idx] = Macro.FromArray(BuildMacroArray(macro));
+				applied++;
+			}
+			FinishImport(applied, warnings, this._importParseWarnings);
+		}
+
+		// Overwrite a specific target half-row with the file's macros.
+		private void ApplyImportToRow(MacroExportModel model, int targetBook, int targetPage)
+		{
+			var page = FirstPage(model);
+			if (page == null) { MessageBox.Show("The file contains no row data.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+			int applied = 0;
+			var warnings = new List<string>();
+			foreach (var macro in page.Macros)
+			{
+				int idx = MacroTextSerializer.SlotToIndex(macro.Slot);
+				if (idx < 0) { warnings.Add("Skipped invalid slot '" + macro.Slot + "'."); continue; }
+				this.Books[targetBook].Rows[targetPage].Macros[idx] = Macro.FromArray(BuildMacroArray(macro));
+				applied++;
+			}
+			FinishImport(applied, warnings, this._importParseWarnings);
+		}
+
+		private PageExport FirstPage(MacroExportModel model)
+		{
+			if (model.Books.Count == 0) return null;
+			if (model.Books[0].Pages.Count == 0) return null;
+			return model.Books[0].Pages[0];
+		}
+
+		private string[] BuildMacroArray(MacroExport macro)
+		{
+			var arr = new string[7];
+			arr[0] = TruncateTitle(macro.Title);
+			for (int i = 0; i < 6; i++)
+				arr[i + 1] = (macro.Lines != null && i < macro.Lines.Length) ? macro.Lines[i] : "";
+			return arr;
+		}
+
+		private void FinishImport(int applied, List<string> warnings, List<string> parseWarnings)
+		{
+			this.SomethingEdited = true;
+			if (this.Contents.Enabled && this.Contents.SelectedIndex >= 0)
+				this.Rows[this.xRow].PerformClick();
+			var msg = new StringBuilder();
+			msg.AppendLine("Imported " + applied + " macro(s) into the editor.");
+			msg.AppendLine("Use File > Save All to write to disk.");
+			var allWarnings = new List<string>();
+			if (parseWarnings != null) allWarnings.AddRange(parseWarnings);
+			if (warnings != null) allWarnings.AddRange(warnings);
+			if (allWarnings.Count > 0)
+			{
+				msg.AppendLine();
+				msg.AppendLine("Warnings (" + allWarnings.Count + "):");
+				int show = Math.Min(allWarnings.Count, 15);
+				for (int i = 0; i < show; i++) msg.AppendLine("  - " + allWarnings[i]);
+				if (allWarnings.Count > show) msg.AppendLine("  ... and " + (allWarnings.Count - show) + " more.");
+			}
+			MessageBox.Show(msg.ToString(), "Import Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+
+		private MacroExportModel PromptAndParseImport(string title)
+		{
+			this._importParseWarnings = new List<string>();
+			this.OpenDialog.InitialDirectory = this.macropath;
+			this.OpenDialog.Filter = "Text Files|*.txt|All Files|*.*";
+			this.OpenDialog.FileName = "";
+			this.OpenDialog.Multiselect = false;
+			this.OpenDialog.Title = title;
+			if (this.OpenDialog.ShowDialog() == DialogResult.Cancel) { this.OpenDialog.Title = "Find Macro Files"; return null; }
+			string path = this.OpenDialog.FileName;
+			this.OpenDialog.Title = "Find Macro Files";
+			this.OpenDialog.Filter = "Macro Title Files|mcr.ttl";
+
+			string content;
+			try { content = System.IO.File.ReadAllText(path); }
+			catch (Exception ex) { MessageBox.Show("Could not read the file:\n" + ex.Message, "Import", MessageBoxButtons.OK, MessageBoxIcon.Error); return null; }
+
+			var result = MacroTextSerializer.Parse(content);
+			if (!result.Success)
+			{
+				MessageBox.Show("Import failed:\n\n" + result.ErrorMessage, "Import Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				return null;
+			}
+			this._importParseWarnings = result.Warnings ?? new List<string>();
+			return result.Model;
+		}
+
+		private bool ConfirmOverwrite(string what)
+		{
+			return MessageBox.Show("This will overwrite " + what + " with the imported content.\n\nContinue?",
+				"Import", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) == DialogResult.OK;
+		}
+
+		// --- Menu handlers ---
+
+		private void File_ImportText_Click(object sender, EventArgs e)
+		{
+			if (!this.Contents.Enabled) { MessageBox.Show("Open a macro set first.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+			var outcome = PromptParseAndRepair("Import Macros from Text (put back where exported)", true, true);
+			if (outcome.Cancelled) return;
+			if (!ConfirmOverwrite("the macros at their original book/page positions")) return;
+			ApplyImportPutBack(outcome.Model);
+			OfferSaveBack(outcome);
+		}
+
+		private void File_ImportAllText_Click(object sender, EventArgs e)
+		{
+			if (!this.Contents.Enabled) { MessageBox.Show("Open a macro set first.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+
+			this.FolderBrowserDialog1.Description = "Choose the folder containing the exported book text files";
+			this.FolderBrowserDialog1.SelectedPath = this.macropath;
+			if (this.FolderBrowserDialog1.ShowDialog() != DialogResult.OK) return;
+			string folder = this.FolderBrowserDialog1.SelectedPath;
+
+			string[] files = System.IO.Directory.GetFiles(folder, "*.txt");
+			if (files.Length == 0)
+			{
+				MessageBox.Show("No .txt files found in:\n" + folder, "Import All", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			if (MessageBox.Show(
+				"Found " + files.Length + " text file(s) in:\n" + folder + "\n\n" +
+				"Each will be imported back to the book/page it was exported from. Existing macros will be overwritten.\n\nContinue?",
+				"Import All Books", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+				return;
+
+			int totalApplied = 0;
+			int filesOk = 0;
+			var imported = new List<string>();
+			var problemFiles = new List<string>();
+
+			foreach (string file in files)
+			{
+				string name = System.IO.Path.GetFileName(file);
+				string fileContent;
+				try { fileContent = System.IO.File.ReadAllText(file); }
+				catch (Exception ex) { problemFiles.Add(name + " - could not read (" + ex.Message + ")"); continue; }
+
+				var result = MacroTextSerializer.Parse(fileContent);
+				if (!result.Success)
+				{
+					problemFiles.Add(name + " - " + result.ErrorMessage);
+					continue;
+				}
+
+				var probs = MacroTextSerializer.Validate(result.Model, this.Books.Count, true, true);
+				if (probs.Count > 0)
+				{
+					problemFiles.Add(name + " - " + probs.Count + " problem(s) (e.g. " + probs[0].Description + ")");
+					continue;
+				}
+
+				var warnings = new List<string>();
+				int applied = ApplyPutBackCore(result.Model, warnings);
+				totalApplied += applied;
+				filesOk++;
+				imported.Add(name + " - imported " + applied + " macro(s)");
+			}
+
+			this.SomethingEdited = true;
+			if (this.Contents.Enabled && this.Contents.SelectedIndex >= 0)
+				this.Rows[this.xRow].PerformClick();
+
+			var msg = new StringBuilder();
+			msg.AppendLine("Imported " + filesOk + " of " + files.Length + " clean file(s), " + totalApplied + " macro(s) total.");
+			msg.AppendLine("Use File > Save All to write to disk.");
+			if (problemFiles.Count > 0)
+			{
+				msg.AppendLine();
+				msg.AppendLine(problemFiles.Count + " file(s) had problems and were NOT imported.");
+				msg.AppendLine("Import each individually (File > Import Text) to run the correction workflow:");
+				int showP = Math.Min(problemFiles.Count, 40);
+				for (int i = 0; i < showP; i++) msg.AppendLine("  - " + problemFiles[i]);
+				if (problemFiles.Count > showP) msg.AppendLine("  ... and " + (problemFiles.Count - showP) + " more.");
+			}
+			MessageBox.Show(msg.ToString(), "Import All Books", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+
+		private void ImportOverBook_Click(object sender, EventArgs e)
+		{
+			var outcome = PromptParseAndRepair("Import Text Over Book " + (this.cbook + 1), false, true);
+			if (outcome.Cancelled) return;
+			if (outcome.Model.Scope != MacroTextScope.Book) { MessageBox.Show("That file is not a Book export. Use a book-scoped file here.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+			if (!ConfirmOverwrite("Book " + (this.cbook + 1) + " (\"" + this.Contents.Items[this.cbook] + "\")")) return;
+			ApplyImportToBook(outcome.Model, this.cbook);
+			OfferSaveBack(outcome);
+		}
+
+		private void ImportOverPage_Click(object sender, EventArgs e)
+		{
+			var outcome = PromptParseAndRepair("Import Text Over Page " + (this.xRow + 1), false, false);
+			if (outcome.Cancelled) return;
+			if (outcome.Model.Scope != MacroTextScope.Page) { MessageBox.Show("That file is not a Page export. Use a page-scoped file here.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+			if (!ConfirmOverwrite("Page " + (this.xRow + 1) + " of the current book")) return;
+			ApplyImportToPage(outcome.Model, this.xBook, this.xRow);
+			OfferSaveBack(outcome);
+		}
+
+		private void ImportOverRow_Click(object sender, EventArgs e)
+		{
+			var outcome = PromptParseAndRepair("Import Text Over Row", false, false);
+			if (outcome.Cancelled) return;
+			if (outcome.Model.Scope != MacroTextScope.Row) { MessageBox.Show("That file is not a Row export. Use a row-scoped file here.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+			if (!ConfirmOverwrite("the current Ctrl/Alt row")) return;
+			ApplyImportToRow(outcome.Model, this.xBook, this.xRow);
+			OfferSaveBack(outcome);
 		}
 
 		// Token: 0x0600008E RID: 142 RVA: 0x00008CA8 File Offset: 0x00006EA8
@@ -4691,6 +5131,8 @@ namespace MacroEditor
 		public MacroMapForm MacroMap;
 
 		public EditableMacroMapForm EditMacroMap;
+
+		private List<string> _importParseWarnings = new List<string>();
 
 		/// <summary>
 		/// Converts index 10 to "0" for FFXI display (10th macro shows as 0).

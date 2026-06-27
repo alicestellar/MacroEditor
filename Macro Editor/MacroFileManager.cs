@@ -138,7 +138,7 @@ namespace MacroEditor
                 {
                     sourceArray = File.ReadAllBytes(text);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     MessageBox.Show("Cannot read " + text + ".", "Macro Editor", MessageBoxButtons.OK);
                     return false;
@@ -194,7 +194,7 @@ namespace MacroEditor
                         File.WriteAllBytes(text, array3);
                         result = true;
                     }
-                    catch (Exception ex2)
+                    catch (Exception)
                     {
                         result = false;
                     }

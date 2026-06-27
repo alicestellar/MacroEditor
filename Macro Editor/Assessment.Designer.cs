@@ -76,6 +76,6 @@
 		}
 
 		// Token: 0x0400000B RID: 11
-		private global::System.ComponentModel.IContainer components;
+		private global::System.ComponentModel.IContainer components = null;
 	}
 }

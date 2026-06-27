@@ -24,7 +24,6 @@ namespace MacroEditor
 		private const int LabelWidth = 150;
 		private const int Gap = 20;
 		private const int HeaderHeight = 70;
-		private int PageHeight = (LabelHeight + Gap) * 2; // Ctrl row + Alt row
 
 		private Panel headerPanel;
 		private Panel bodyPanel;
